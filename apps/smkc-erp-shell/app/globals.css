@@ -1,0 +1,525 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ═══════════════════════════════════════════
+   SMKC BRAND TOKEN SYSTEM
+   Sangli-Miraj-Kupwad City Municipal Corp.
+═══════════════════════════════════════════ */
+:root {
+  /* ── Brand Colors ── */
+  --brand-primary:       #C0392B;  /* Sangli Red      */
+  --brand-primary-dark:  #962d22;  /* Deep Red        */
+  --brand-secondary:     #D4AF37;  /* Miraj Gold      */
+  --brand-cta:           #E74C3C;  /* Kupwad Coral    */
+  --brand-cta-hover:     #C0392B;
+
+  /* ── Neutrals ── */
+  --color-white:         #FDFEFE;
+  --color-gray-50:       #F2F3F4;
+  --color-gray-100:      #E8EAEB;
+  --color-gray-200:      #CCD1D1;
+  --color-text-muted:    #7B7D7D;
+  --color-text-body:     #4a5568;
+  --color-heading:       #2C3E50;
+  --color-dark:          #1a252f;
+
+  /* ── Surfaces ── */
+  --surface:             #FDFEFE;
+  --surface-soft:        #F2F3F4;
+  --surface-border:      #E8EAEB;
+
+  /* ── Legacy aliases (kept for compatibility) ── */
+  --ink:           var(--color-heading);
+  --muted:         var(--color-text-muted);
+  --accent:        var(--brand-primary);
+  --accent-hover:  var(--brand-cta-hover);
+  --danger:        var(--brand-primary);
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  background: var(--color-gray-50);
+  color: var(--color-heading);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════
+   AUTH / LOGIN SCREEN
+═══════════════════════════════════════════ */
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(192, 57, 43, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 100%, rgba(212, 175, 55, 0.08) 0%, transparent 55%),
+    linear-gradient(160deg, #f8f9fa 0%, #F2F3F4 100%);
+}
+
+.auth-card {
+  width: min(440px, 100%);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow:
+    0 4px 6px rgba(44, 62, 80, 0.04),
+    0 20px 60px rgba(44, 62, 80, 0.13);
+  overflow: hidden;
+}
+
+/* Red Header Block */
+.auth-card-header {
+  background: var(--brand-primary);
+  padding: 2rem 2rem 1.75rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card-header::before {
+  content: '';
+  position: absolute;
+  top: -48px;
+  right: 24px;
+  width: 160px;
+  height: 160px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
+}
+
+.auth-card-header::after {
+  content: '';
+  position: absolute;
+  bottom: -28px;
+  right: -28px;
+  width: 110px;
+  height: 110px;
+  background: rgba(212, 175, 55, 0.15);
+  border-radius: 50%;
+}
+
+.auth-brand-logo {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  border: 2px solid rgba(212, 175, 55, 0.65);
+  display: grid;
+  place-items: center;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-brand-logo svg {
+  width: 28px;
+  height: 28px;
+  fill: var(--brand-secondary);
+}
+
+.auth-card-header h1 {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-card-header p {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  position: relative;
+  z-index: 1;
+  letter-spacing: 0.02em;
+}
+
+/* Gold accent divider */
+.auth-gold-bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand-secondary) 0%, rgba(212, 175, 55, 0.2) 100%);
+}
+
+.auth-card-body {
+  padding: 1.75rem 2rem 2rem;
+}
+
+.auth-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--brand-primary);
+}
+
+.auth-note {
+  margin-top: 0.2rem;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+/* ── Form ── */
+.auth-form {
+  margin-top: 1.5rem;
+  display: grid;
+  gap: 1.1rem;
+}
+
+.auth-form label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--color-heading);
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.auth-form input {
+  width: 100%;
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: var(--surface);
+  color: var(--color-heading);
+  font-family: inherit;
+}
+
+.auth-form input::placeholder {
+  color: var(--color-gray-200);
+}
+
+.auth-form input:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.11);
+}
+
+.auth-form button {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.875rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--brand-cta);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 4px 14px rgba(231, 76, 60, 0.35);
+  margin-top: 0.4rem;
+  font-family: inherit;
+}
+
+.auth-form button:hover {
+  background: var(--brand-cta-hover);
+  box-shadow: 0 4px 22px rgba(192, 57, 43, 0.42);
+}
+
+.auth-form button:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 8px rgba(192, 57, 43, 0.25);
+}
+
+.auth-error {
+  color: var(--brand-primary);
+  font-size: 0.84rem;
+  padding: 0.6rem 0.9rem;
+  background: rgba(192, 57, 43, 0.07);
+  border-radius: 8px;
+  border-left: 3px solid var(--brand-primary);
+}
+
+/* ═══════════════════════════════════════════
+   ERP SHELL — AUTHENTICATED LAYOUT
+═══════════════════════════════════════════ */
+.erp-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-gray-50);
+}
+
+.erp-shell-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--surface-border);
+  box-shadow: 0 1px 12px rgba(44, 62, 80, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.erp-shell-header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1.75rem;
+  height: 64px;
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.erp-header-divider {
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-secondary) 55%, transparent 100%);
+}
+
+/* Brand area */
+.erp-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.erp-brand-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  border: 2px solid var(--brand-secondary);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.erp-brand-mark svg {
+  width: 20px;
+  height: 20px;
+  fill: #fff;
+}
+
+.erp-brand-text {
+  line-height: 1.2;
+}
+
+.erp-brand-text strong {
+  display: block;
+  font-size: 1.025rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  letter-spacing: -0.01em;
+}
+
+.erp-brand-text span {
+  font-size: 0.68rem;
+  color: var(--brand-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+
+/* Profile area in header */
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.profile-info {
+  text-align: right;
+  line-height: 1.45;
+}
+
+.profile-info strong {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.profile-info small {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-cta));
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  letter-spacing: 0;
+  border: 2px solid rgba(212, 175, 55, 0.4);
+}
+
+.profile-card button {
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: 8px;
+  padding: 0.42rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-body);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.profile-card button:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  background: rgba(192, 57, 43, 0.05);
+}
+
+/* ═══════════════════════════════════════════
+   HOME / DEPARTMENT PORTAL
+═══════════════════════════════════════════ */
+.erp-main {
+  flex: 1;
+  padding: 2rem 1.75rem;
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.erp-page-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.erp-page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  letter-spacing: -0.02em;
+}
+
+.erp-page-subtitle {
+  margin-top: 0.35rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.dept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.1rem;
+}
+
+.dept-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.5rem 1.35rem 1.35rem;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+  text-decoration: none;
+  color: var(--color-heading);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  box-shadow: 0 1px 4px rgba(44, 62, 80, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.dept-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary));
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.dept-card:hover {
+  border-color: rgba(192, 57, 43, 0.35);
+  box-shadow: 0 8px 28px rgba(192, 57, 43, 0.11);
+  transform: translateY(-2px);
+}
+
+.dept-card:hover::before {
+  opacity: 1;
+}
+
+.dept-card-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: rgba(192, 57, 43, 0.07);
+  display: grid;
+  place-items: center;
+  transition: background 0.2s;
+}
+
+.dept-card-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: var(--brand-primary);
+}
+
+.dept-card:hover .dept-card-icon {
+  background: rgba(192, 57, 43, 0.13);
+}
+
+.dept-card-label {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.dept-card-arrow {
+  font-size: 1rem;
+  color: var(--brand-secondary);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.dept-card:hover .dept-card-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+@media (max-width: 720px) {
+  .erp-shell-header-inner {
+    padding: 0 1rem;
+  }
+
+  .profile-info {
+    display: none;
+  }
+
+  .erp-main {
+    padding: 1.5rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dept-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .auth-card-body {
+    padding: 1.5rem 1.25rem 1.75rem;
+  }
+
+  .auth-card-header {
+    padding: 1.5rem 1.25rem 1.25rem;
+  }
+}
+

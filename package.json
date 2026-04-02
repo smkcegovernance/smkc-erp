@@ -1,0 +1,17 @@
+{
+  "name": "smkc-erp",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/smkc-erp-shell",
+    "build": "npm run build --workspace=apps/smkc-erp-shell",
+    "start": "npm run start --workspace=apps/smkc-erp-shell",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
