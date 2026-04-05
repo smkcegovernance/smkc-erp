@@ -1,4 +1,4 @@
-import type { Session, User } from '@smkc/types'
+import type { Session, User, UserRole } from '@smkc/types'
 
 const SESSION_KEY = 'smkc_session'
 
@@ -8,16 +8,36 @@ export function isValidMockUserId(userId: string): boolean {
   return USER_ID_PATTERN.test(userId.trim())
 }
 
+/**
+ * Assigns a role based on user-ID prefix for mock/demo purposes.
+ * Prefix rules (case-insensitive):
+ *   COMM → commissioner  (e.g. COMM0001)
+ *   HOD  → hod           (e.g. HOD10001)
+ *   ACCT → account       (e.g. ACCT0001)
+ *   BANK → bank          (e.g. BANK0001)
+ *   *    → operator      (any other 8-char ID)
+ */
+function deriveRole(userId: string): UserRole {
+  const p = userId.toUpperCase()
+  if (p.startsWith('COMM')) return 'commissioner'
+  if (p.startsWith('HOD'))  return 'hod'
+  if (p.startsWith('ACCT')) return 'account'
+  if (p.startsWith('BANK')) return 'bank'
+  return 'operator'
+}
+
 export function createMockSession(userId: string, password: string): Session | null {
   const normalizedUserId = userId.trim()
   if (!isValidMockUserId(normalizedUserId) || password.trim().length === 0) {
     return null
   }
 
+  const role = deriveRole(normalizedUserId)
+
   const user: User = {
     userId: normalizedUserId,
     name: `SMKC User ${normalizedUserId}`,
-    role: 'unknown',
+    role,
     roleId: 0,
     status: 'active',
   }
