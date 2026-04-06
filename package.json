@@ -9,6 +9,9 @@
     "dev": "npm run dev --workspace=apps/smkc-erp-shell",
     "build": "npm run build --workspace=apps/smkc-erp-shell",
     "start": "npm run start --workspace=apps/smkc-erp-shell",
+    "dev:deposit-manager": "npm run dev --workspace=apps/deposit-manager",
+    "build:deposit-manager": "npm run build --workspace=apps/deposit-manager",
+    "start:deposit-manager": "npm run start --workspace=apps/deposit-manager",
     "lint": "npm run lint --workspaces --if-present"
   },
   "engines": {

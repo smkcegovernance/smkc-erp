@@ -3,4 +3,4 @@
 	url = https://github.com/GhostRiderAlive/SMKC_Disabilities_Registration.git
 [submodule "duplicate-voter-verification"]
 	path = duplicate-voter-verification
-	url = https://github.com/atulbee/duplicate-voter-verification
+	url = https://github.com/smkcegovernance/duplicate-voter-verification/

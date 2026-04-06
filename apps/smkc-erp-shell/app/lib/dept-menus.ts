@@ -2,6 +2,10 @@ export interface MenuItem {
   key: string
   label: string
   icon: string
+  /** Override the generated href (e.g. for cross-app navigation) */
+  href?: string
+  /** Open in a new tab */
+  external?: boolean
 }
 
 export interface MenuGroup {
@@ -75,6 +79,7 @@ export const DEPT_MENUS: DeptMenuMap = {
       items: [
         { key: 'advance-request',     label: 'Advance Request',      icon: 'bi-wallet2' },
         { key: 'budget-reallocation', label: 'Budget Reallocation',  icon: 'bi-arrow-left-right' },
+        { key: 'deposit-manager',     label: 'Deposit Manager',      icon: 'bi-safe2-fill', href: 'http://localhost:3000/depositmanager', external: true },
       ],
     },
     {

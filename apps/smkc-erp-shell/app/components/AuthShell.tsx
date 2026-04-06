@@ -3,9 +3,12 @@
 import { createMockSession, getSession, isAuthenticated, saveSession, clearSession } from '@smkc/auth'
 import type { Session } from '@smkc/types'
 import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 export default function AuthShell({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const [session, setSession] = useState<Session | null>(null)
   const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')
@@ -41,6 +44,7 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
     setSession(nextSession)
     setError('')
     setPassword('')
+    router.push('/')
   }
 
   const handleLogout = () => {
@@ -202,7 +206,7 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
       <header className="erp-shell-header">
         <div className="erp-shell-header-inner">
           {/* ── Brand ── */}
-          <div className="erp-brand">
+          <Link href="/" className="erp-brand" style={{ textDecoration: 'none' }}>
             <div className="erp-brand-mark" aria-hidden="true">
               <Image
                 src="/assets/SMKC_NEW_LOGO_PNG.png"
@@ -216,7 +220,7 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
               <strong>SMKC ERP</strong>
               <span>Sangli, Miraj and Kupwad City Municipal Corporation</span>
             </div>
-          </div>
+          </Link>
 
           {/* ── Profile ── */}
           <section className="profile-card" aria-label="User profile">

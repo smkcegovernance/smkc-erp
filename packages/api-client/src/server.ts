@@ -19,6 +19,22 @@ function getBaseUrl(): string {
   return url
 }
 
+function maybeEnableInsecureLocalhostTls(rawUrl: string): void {
+  if (typeof process === 'undefined' || process.env.ALLOW_INSECURE_LOCALHOST_TLS !== 'true') {
+    return
+  }
+
+  try {
+    const parsed = new URL(rawUrl)
+    const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
+    if (isLocalhost && parsed.protocol === 'https:') {
+      process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+    }
+  } catch {
+    // Ignore malformed URLs and keep default TLS behavior.
+  }
+}
+
 async function request<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {
   const baseUrl = getBaseUrl()
   const url = new URL(path, baseUrl)
@@ -29,6 +45,8 @@ async function request<T>(method: HttpMethod, path: string, body?: unknown): Pro
     'Content-Type': 'application/json',
     ...buildAuthHeaders(method, pathWithQuery, bodyStr),
   }
+
+  maybeEnableInsecureLocalhostTls(url.toString())
 
   const res = await fetch(url.toString(), {
     method,

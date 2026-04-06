@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { apiClient } from '@smkc/api-client'
 import type { WaterConnectionDashboard, WaterRevenueDashboard } from '@smkc/types'
 import RevenueTab from './RevenueTab'
@@ -87,6 +88,14 @@ export default function WaterDashboard() {
 
   return (
     <div className="wt-root">
+      {/* ═══ BREADCRUMB ═══ */}
+      <div style={{ padding: '0.5rem 1.5rem 0' }}>
+        <Link href="/" style={{ color: 'var(--wt-primary, #0ea5e9)', textDecoration: 'none', fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+          <i className="bi bi-house-fill" />
+          All Departments
+        </Link>
+      </div>
+
       {/* ═══ PAGE HEADER ═══ */}
       <div className="wt-page-header">
         <div className="wt-page-header-left">

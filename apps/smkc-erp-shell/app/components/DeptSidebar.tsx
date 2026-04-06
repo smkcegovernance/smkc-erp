@@ -106,13 +106,14 @@ export default function DeptSidebar({ deptKey, isOpen, onToggle }: DeptSidebarPr
                 {isExpanded && (
                   <ul className="dept-sidebar-group-items" role="list">
                     {group.items.map((item) => {
-                      const href = `/${deptKey}/${item.key}`
-                      const isActive = pathname === href
+                      const href = item.href ?? `/${deptKey}/${item.key}`
+                      const isActive = !item.href && pathname === href
                       return (
                         <li key={item.key} role="listitem">
                           <Link
                             href={href}
                             className={`dept-sidebar-item${isActive ? ' active' : ''}`}
+                            {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                           >
                             <i className={`bi ${item.icon}`} aria-hidden="true" />
                             <span>{item.label}</span>
