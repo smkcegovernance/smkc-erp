@@ -21,11 +21,13 @@ export default function AddressContactSection({
   const handleInputChange = (field: string) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     let value = e.target.value
     
-    // Format specific fields
-    if (field === 'mobileNumber' || field === 'pincode') {
+    if (field === 'mobileNumber' || field === 'pincode' || field === 'alternatePhone' || field === 'accountNumber' || field === 'bplYear') {
       value = value.replace(/\D/g, '')
       if (field === 'mobileNumber') value = value.slice(0, 10)
       if (field === 'pincode') value = value.slice(0, 6)
+      if (field === 'alternatePhone') value = value.slice(0, 10)
+      if (field === 'accountNumber') value = value.slice(0, 18)
+      if (field === 'bplYear') value = value.slice(0, 4)
     }
     if (field === 'ifscCode') {
       value = value.toUpperCase()
@@ -37,10 +39,13 @@ export default function AddressContactSection({
   return (
     <section className="form-section active" id="section2">
       <div className="section-header">
-        <h4><i className="bi bi-geo-alt"></i> पत्ता व संपर्क माहिती</h4>
+        <div className="section-heading-block">
+          <span className="section-eyebrow">Address and outreach</span>
+          <h4><i className="bi bi-geo-alt"></i> पत्ता व संपर्क माहिती</h4>
+          <p className="section-description">संपर्कासाठी वापरला जाणारा पत्ता, मोबाईल आणि ऐच्छिक बँक माहिती द्या.</p>
+        </div>
       </div>
       <div className="section-body">
-        {/* Address */}
         <div className="form-group-card">
           <div className="card-label">2. पत्ता</div>
           <div className="row g-3">
@@ -125,6 +130,7 @@ export default function AddressContactSection({
                   onChange={handleInputChange('mobileNumber')}
                   placeholder="10 अंकी मोबाईल क्रमांक"
                   maxLength={10}
+                  inputMode="numeric"
                 />
               </div>
               {errors.mobileNumber && <div className="invalid-feedback d-block">{errors.mobileNumber}</div>}
@@ -135,65 +141,71 @@ export default function AddressContactSection({
                 <span className="input-group-text"><i className="bi bi-telephone"></i></span>
                 <input
                   type="tel"
-                  className="form-control"
+                  className={`form-control ${errors.alternatePhone ? 'is-invalid' : ''}`}
                   value={formData.alternatePhone}
                   onChange={handleInputChange('alternatePhone')}
                   placeholder="पर्यायी क्रमांक"
+                  inputMode="numeric"
                 />
               </div>
+              {errors.alternatePhone && <div className="invalid-feedback d-block">{errors.alternatePhone}</div>}
             </div>
           </div>
         </div>
 
-        {/* Bank Details */}
         <div className="form-group-card">
           <div className="card-label">8. बँक खाते माहिती</div>
+          <p className="field-note">या अर्जासाठी बँक तपशील अनिवार्य आहेत. सर्व संबंधित फील्ड पूर्ण भरा.</p>
           <div className="row g-3">
             <div className="col-md-6">
-              <label className="form-label">खाते असलेल्या बँकेचे नाव</label>
+              <label className="form-label">खाते असलेल्या बँकेचे नाव <span className="required">*</span></label>
               <input
                 type="text"
-                className="form-control"
+                className={`form-control ${errors.bankName ? 'is-invalid' : ''}`}
                 value={formData.bankName}
                 onChange={handleInputChange('bankName')}
                 placeholder="बँकेचे नाव"
               />
+              {errors.bankName && <div className="invalid-feedback">{errors.bankName}</div>}
             </div>
             <div className="col-md-6">
-              <label className="form-label">शाखा</label>
+              <label className="form-label">शाखा <span className="required">*</span></label>
               <input
                 type="text"
-                className="form-control"
+                className={`form-control ${errors.branchName ? 'is-invalid' : ''}`}
                 value={formData.branchName}
                 onChange={handleInputChange('branchName')}
                 placeholder="शाखेचे नाव"
               />
+              {errors.branchName && <div className="invalid-feedback">{errors.branchName}</div>}
             </div>
             <div className="col-md-6">
-              <label className="form-label">बँक खाते क्रमांक</label>
+              <label className="form-label">बँक खाते क्रमांक <span className="required">*</span></label>
               <input
                 type="text"
-                className="form-control"
+                className={`form-control ${errors.accountNumber ? 'is-invalid' : ''}`}
                 value={formData.accountNumber}
                 onChange={handleInputChange('accountNumber')}
                 placeholder="खाते क्रमांक"
+                inputMode="numeric"
               />
+              {errors.accountNumber && <div className="invalid-feedback">{errors.accountNumber}</div>}
             </div>
             <div className="col-md-6">
-              <label className="form-label">IFSC क्रमांक</label>
+              <label className="form-label">IFSC क्रमांक <span className="required">*</span></label>
               <input
                 type="text"
-                className="form-control"
+                className={`form-control ${errors.ifscCode ? 'is-invalid' : ''}`}
                 value={formData.ifscCode}
                 onChange={handleInputChange('ifscCode')}
                 placeholder="IFSC क्रमांक"
                 style={{ textTransform: 'uppercase' }}
               />
+              {errors.ifscCode && <div className="invalid-feedback">{errors.ifscCode}</div>}
             </div>
           </div>
         </div>
 
-        {/* BPL Details */}
         <div className="form-group-card">
           <div className="card-label">13. दारिद्र्य रेषेखालील असल्यास</div>
           <div className="row g-3">
@@ -215,7 +227,9 @@ export default function AddressContactSection({
                 value={formData.bplYear}
                 onChange={handleInputChange('bplYear')}
                 placeholder="वर्ष"
+                inputMode="numeric"
               />
+              {errors.bplYear && <div className="invalid-feedback d-block">{errors.bplYear}</div>}
             </div>
           </div>
         </div>

@@ -296,6 +296,163 @@ body {
   transition: background 0.2s;
 }
 
+.erp-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(17, 24, 39, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.erp-popup {
+  width: min(560px, 100%);
+  background: var(--surface);
+  border-radius: 24px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  overflow: hidden;
+}
+
+.erp-popup-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem 1.6rem 0.9rem;
+}
+
+.erp-popup-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.erp-popup-title {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0.8rem 0 0;
+  color: var(--color-heading);
+  font-size: 1.28rem;
+  font-weight: 800;
+}
+
+.erp-popup-title i {
+  font-size: 1.3rem;
+}
+
+.erp-popup-desc {
+  margin: 0.7rem 0 0;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  font-size: 0.92rem;
+}
+
+.erp-popup-close {
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.18s, color 0.18s;
+}
+
+.erp-popup-close:hover {
+  background: rgba(15, 23, 42, 0.1);
+  color: var(--color-heading);
+}
+
+.erp-popup-body {
+  padding: 0 1.6rem 1.2rem;
+}
+
+.erp-popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 0 1.6rem 1.6rem;
+}
+
+.erp-popup-action {
+  min-width: 132px;
+  height: 42px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+}
+
+.erp-popup-action:hover {
+  transform: translateY(-1px);
+}
+
+.erp-popup-action-primary {
+  background: var(--brand-primary);
+  color: #fff;
+}
+
+.erp-popup-action-secondary {
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--color-heading);
+}
+
+.erp-popup-action-danger {
+  background: #b42318;
+  color: #fff;
+}
+
+.erp-popup-success .erp-popup-title i {
+  color: #15803d;
+}
+
+.erp-popup-error .erp-popup-title i {
+  color: #b42318;
+}
+
+.erp-popup-warning .erp-popup-title i,
+.erp-popup-confirm .erp-popup-title i {
+  color: #b45309;
+}
+
+.erp-popup-info .erp-popup-title i {
+  color: #0f5fa8;
+}
+
+@media (max-width: 640px) {
+  .erp-popup {
+    border-radius: 20px;
+  }
+
+  .erp-popup-header,
+  .erp-popup-body,
+  .erp-popup-actions {
+    padding-left: 1.1rem;
+    padding-right: 1.1rem;
+  }
+
+  .erp-popup-actions {
+    flex-direction: column-reverse;
+  }
+
+  .erp-popup-action {
+    width: 100%;
+  }
+}
+
 .auth-corp-name {
   color: rgba(255, 255, 255, 0.97);
   font-size: 1rem;

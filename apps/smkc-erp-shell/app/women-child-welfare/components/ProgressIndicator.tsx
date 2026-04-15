@@ -16,11 +16,13 @@ export default function ProgressIndicator({ currentStep, onStepClick }: Progress
       <div className="container">
         <div className="progress-wrapper">
           {steps.map((step, index) => (
-            <div key={step.id}>
-              <div
+            <div key={step.id} className="progress-item">
+              <button
+                type="button"
                 className={`progress-step ${currentStep === step.id ? 'active' : ''} ${currentStep > step.id ? 'completed' : ''}`}
                 onClick={() => onStepClick(step.id)}
-                style={{ cursor: currentStep > step.id ? 'pointer' : 'default' }}
+                disabled={currentStep < step.id}
+                aria-current={currentStep === step.id ? 'step' : undefined}
               >
                 <div className="step-icon">
                   {currentStep > step.id ? (
@@ -29,8 +31,11 @@ export default function ProgressIndicator({ currentStep, onStepClick }: Progress
                     <i className={`bi ${step.icon}`}></i>
                   )}
                 </div>
-                <span>{step.label}</span>
-              </div>
+                <div className="step-copy">
+                  <small>{`0${step.id}`}</small>
+                  <span>{step.label}</span>
+                </div>
+              </button>
               {index < steps.length - 1 && (
                 <div className={`progress-line ${currentStep > step.id ? 'active' : ''}`}></div>
               )}

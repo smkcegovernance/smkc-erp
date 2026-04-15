@@ -19,7 +19,13 @@ export default function DisabilityInfoSection({
   onPrev,
 }: DisabilityInfoSectionProps) {
   const handleInputChange = (field: string) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    updateFormData(field, e.target.value)
+    let value = e.target.value
+
+    if (field === 'disabilityPercentage') {
+      value = value.replace(/\D/g, '').slice(0, 3)
+    }
+
+    updateFormData(field, value)
   }
 
   const handleDisabilityTypeChange = (value: string) => (e: ChangeEvent<HTMLInputElement>) => {
@@ -34,16 +40,22 @@ export default function DisabilityInfoSection({
   return (
     <section className="form-section active" id="section3">
       <div className="section-header">
-        <h4><i className="bi bi-clipboard2-pulse"></i> दिव्यांगत्व माहिती</h4>
+        <div className="section-heading-block">
+          <span className="section-eyebrow">Disability profile</span>
+          <h4><i className="bi bi-clipboard2-pulse"></i> दिव्यांगत्व माहिती</h4>
+          <p className="section-description">प्रवर्ग, प्रमाणपत्रे, प्रवास सवलत आणि रोजगाराशी संबंधित माहिती पूर्ण करा.</p>
+        </div>
       </div>
       <div className="section-body">
-        {/* Type of Disability */}
         <div className="form-group-card">
           <div className="card-label">
             14. दिव्यांगत्वाचा / अपंगत्वाचा प्रकार / प्रवर्ग <span className="required">*</span>
           </div>
           <p className="text-muted small mb-3">खालीलपैकी दिव्यांगत्वाचा / अपंगत्वाचा प्रकार येथे नमूद करा</p>
           {errors.disabilityTypes && <div className="text-danger small mb-3">{errors.disabilityTypes}</div>}
+          {formData.disabilityTypes.length > 0 && (
+            <div className="selection-summary">निवडलेले प्रकार: {formData.disabilityTypes.length}</div>
+          )}
           <div className="row g-2">
             {DISABILITY_TYPES.map((type) => (
               <div key={type.id} className="col-md-6 col-lg-4">
@@ -67,7 +79,7 @@ export default function DisabilityInfoSection({
 
         {/* Disability Certificate */}
         <div className="form-group-card">
-          <div className="card-label">15. जिल्हा वैद्यकीय मंडळ यांचा अपंगत्वाचा दाखला आहे काय?</div>
+          <div className="card-label">15. जिल्हा वैद्यकीय मंडळ यांचा अपंगत्वाचा दाखला आहे काय? <span className="required">*</span></div>
           <div className="row g-3">
             <div className="col-12">
               <div className="btn-group-toggle mb-3">
@@ -89,6 +101,7 @@ export default function DisabilityInfoSection({
                 ))}
               </div>
             </div>
+            {errors.hasCertificate && <div className="invalid-feedback d-block mt-1">{errors.hasCertificate}</div>}
             {formData.hasCertificate === 'आहे' && (
               <div className="col-12">
                 <div className="row g-3">
@@ -96,25 +109,27 @@ export default function DisabilityInfoSection({
                     <label className="form-label">अ) दाखला क्रमांक</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className={`form-control ${errors.certificateNumber ? 'is-invalid' : ''}`}
                       value={formData.certificateNumber}
                       onChange={handleInputChange('certificateNumber')}
                       placeholder="दाखला क्रमांक"
                     />
+                    {errors.certificateNumber && <div className="invalid-feedback">{errors.certificateNumber}</div>}
                   </div>
                   <div className="col-md-4">
                     <label className="form-label">आ) दाखल्याचा दिनांक</label>
                     <input
                       type="date"
-                      className="form-control"
+                      className={`form-control ${errors.certificateDate ? 'is-invalid' : ''}`}
                       value={formData.certificateDate}
                       onChange={handleInputChange('certificateDate')}
                     />
+                    {errors.certificateDate && <div className="invalid-feedback">{errors.certificateDate}</div>}
                   </div>
                   <div className="col-md-4">
                     <label className="form-label">इ) दाखल्याचा प्रकार</label>
                     <select
-                      className="form-select"
+                      className={`form-select ${errors.certificateType ? 'is-invalid' : ''}`}
                       value={formData.certificateType}
                       onChange={handleInputChange('certificateType')}
                     >
@@ -122,21 +137,22 @@ export default function DisabilityInfoSection({
                       <option value="तात्पुरता">तात्पुरता</option>
                       <option value="कायमस्वरूपी">कायमस्वरूपी</option>
                     </select>
+                    {errors.certificateType && <div className="invalid-feedback">{errors.certificateType}</div>}
                   </div>
                   <div className="col-md-4">
                     <label className="form-label">ई) दाखला असल्यास टक्केवारी</label>
                     <div className="input-group">
                       <input
-                        type="number"
-                        className="form-control"
+                        type="text"
+                        className={`form-control ${errors.disabilityPercentage ? 'is-invalid' : ''}`}
                         value={formData.disabilityPercentage}
                         onChange={handleInputChange('disabilityPercentage')}
-                        min="0"
-                        max="100"
                         placeholder="टक्केवारी"
+                        inputMode="numeric"
                       />
                       <span className="input-group-text">%</span>
                     </div>
+                    {errors.disabilityPercentage && <div className="invalid-feedback d-block">{errors.disabilityPercentage}</div>}
                   </div>
                 </div>
               </div>
@@ -146,7 +162,7 @@ export default function DisabilityInfoSection({
 
         {/* UDID Card */}
         <div className="form-group-card">
-          <div className="card-label">16. स्वावलंबन कार्ड (UDID Card) आहे काय?</div>
+          <div className="card-label">16. स्वावलंबन कार्ड (UDID Card) आहे काय? <span className="required">*</span></div>
           <div className="row g-3">
             <div className="col-12">
               <div className="btn-group-toggle mb-3">
@@ -168,16 +184,18 @@ export default function DisabilityInfoSection({
                 ))}
               </div>
             </div>
+            {errors.hasUDID && <div className="invalid-feedback d-block mt-1">{errors.hasUDID}</div>}
             {formData.hasUDID === 'आहे' && (
               <div className="col-md-6">
                 <label className="form-label">असल्यास नंबर / क्रमांक</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className={`form-control ${errors.udidNumber ? 'is-invalid' : ''}`}
                   value={formData.udidNumber}
                   onChange={handleInputChange('udidNumber')}
                   placeholder="UDID नंबर"
                 />
+                {errors.udidNumber && <div className="invalid-feedback">{errors.udidNumber}</div>}
               </div>
             )}
           </div>
@@ -190,7 +208,7 @@ export default function DisabilityInfoSection({
           {/* ST Pass */}
           <div className="row g-3 mb-3">
             <div className="col-12">
-              <label className="form-label fw-semibold">17. एस टी प्रवास सवलत पास आहे काय?</label>
+              <label className="form-label fw-semibold">17. एस टी प्रवास सवलत पास आहे काय? <span className="required">*</span></label>
               <div className="btn-group-toggle">
                 {['आहे', 'नाही'].map((option) => (
                   <div key={option} className="form-check form-check-inline custom-radio">
@@ -210,16 +228,18 @@ export default function DisabilityInfoSection({
                 ))}
               </div>
             </div>
+            {errors.hasSTPass && <div className="invalid-feedback d-block mt-1">{errors.hasSTPass}</div>}
             {formData.hasSTPass === 'आहे' && (
               <div className="col-md-6">
                 <label className="form-label">असल्यास नंबर / क्रमांक</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className={`form-control ${errors.stPassNumber ? 'is-invalid' : ''}`}
                   value={formData.stPassNumber}
                   onChange={handleInputChange('stPassNumber')}
                   placeholder="ST पास नंबर"
                 />
+                {errors.stPassNumber && <div className="invalid-feedback">{errors.stPassNumber}</div>}
               </div>
             )}
           </div>
@@ -227,7 +247,7 @@ export default function DisabilityInfoSection({
           {/* Railway Pass */}
           <div className="row g-3 mb-3">
             <div className="col-12">
-              <label className="form-label fw-semibold">18. रेल्वे प्रवास सवलत पास आहे काय?</label>
+              <label className="form-label fw-semibold">18. रेल्वे प्रवास सवलत पास आहे काय? <span className="required">*</span></label>
               <div className="btn-group-toggle">
                 {['आहे', 'नाही'].map((option) => (
                   <div key={option} className="form-check form-check-inline custom-radio">
@@ -247,16 +267,18 @@ export default function DisabilityInfoSection({
                 ))}
               </div>
             </div>
+            {errors.hasRailwayPass && <div className="invalid-feedback d-block mt-1">{errors.hasRailwayPass}</div>}
             {formData.hasRailwayPass === 'आहे' && (
               <div className="col-md-6">
                 <label className="form-label">असल्यास नंबर / क्रमांक</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className={`form-control ${errors.railwayPassNumber ? 'is-invalid' : ''}`}
                   value={formData.railwayPassNumber}
                   onChange={handleInputChange('railwayPassNumber')}
                   placeholder="रेल्वे पास नंबर"
                 />
+                {errors.railwayPassNumber && <div className="invalid-feedback">{errors.railwayPassNumber}</div>}
               </div>
             )}
           </div>
@@ -264,7 +286,7 @@ export default function DisabilityInfoSection({
           {/* MSRTC Pass */}
           <div className="row g-3">
             <div className="col-12">
-              <label className="form-label fw-semibold">19. एस.टी. प्रवास सवलत पास आहे काय?</label>
+              <label className="form-label fw-semibold">19. एस.टी. प्रवास सवलत पास आहे काय? <span className="required">*</span></label>
               <div className="btn-group-toggle">
                 {['आहे', 'नाही'].map((option) => (
                   <div key={option} className="form-check form-check-inline custom-radio">
@@ -284,16 +306,18 @@ export default function DisabilityInfoSection({
                 ))}
               </div>
             </div>
+            {errors.hasMSRTCPass && <div className="invalid-feedback d-block mt-1">{errors.hasMSRTCPass}</div>}
             {formData.hasMSRTCPass === 'आहे' && (
               <div className="col-md-6">
                 <label className="form-label">असल्यास नंबर / क्रमांक</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className={`form-control ${errors.msrtcPassNumber ? 'is-invalid' : ''}`}
                   value={formData.msrtcPassNumber}
                   onChange={handleInputChange('msrtcPassNumber')}
                   placeholder="एस.टी. पास नंबर"
                 />
+                {errors.msrtcPassNumber && <div className="invalid-feedback">{errors.msrtcPassNumber}</div>}
               </div>
             )}
           </div>
@@ -301,7 +325,7 @@ export default function DisabilityInfoSection({
 
         {/* Employment */}
         <div className="form-group-card">
-          <div className="card-label">20. नोकरीत आहे काय?</div>
+          <div className="card-label">20. नोकरीत आहे काय? <span className="required">*</span></div>
           <div className="row g-3">
             <div className="col-12">
               <div className="btn-group-toggle mb-3">
@@ -323,6 +347,7 @@ export default function DisabilityInfoSection({
                 ))}
               </div>
             </div>
+            {errors.isEmployed && <div className="invalid-feedback d-block mt-1">{errors.isEmployed}</div>}
             {formData.isEmployed === 'आहे' && (
               <div className="col-12">
                 <label className="form-label">असल्यास प्रकार</label>
@@ -344,6 +369,7 @@ export default function DisabilityInfoSection({
                     </div>
                   ))}
                 </div>
+                {errors.employmentType && <div className="invalid-feedback d-block">{errors.employmentType}</div>}
               </div>
             )}
           </div>
@@ -356,11 +382,12 @@ export default function DisabilityInfoSection({
             <div className="col-12">
               <input
                 type="text"
-                className="form-control"
+                className={`form-control ${errors.occupation ? 'is-invalid' : ''}`}
                 value={formData.occupation}
                 onChange={handleInputChange('occupation')}
                 placeholder="व्यवसाय प्रविष्ट करा"
               />
+              {errors.occupation && <div className="invalid-feedback">{errors.occupation}</div>}
             </div>
           </div>
         </div>

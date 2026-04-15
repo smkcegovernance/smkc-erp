@@ -6,6 +6,7 @@ import { FormData, EDUCATION_OPTIONS, RELIGION_OPTIONS, CASTE_OPTIONS, FAMILY_RE
 interface PersonalInfoSectionProps {
   formData: FormData
   updateFormData: (field: string, value: any) => void
+  setFieldError: (field: string, message?: string) => void
   errors: Record<string, string>
   onNext: () => void
 }
@@ -13,6 +14,7 @@ interface PersonalInfoSectionProps {
 export default function PersonalInfoSection({
   formData,
   updateFormData,
+  setFieldError,
   errors,
   onNext,
 }: PersonalInfoSectionProps) {
@@ -20,22 +22,26 @@ export default function PersonalInfoSection({
 
   const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        alert('कृपया फक्त इमेज फाइल निवडा')
-        return
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        alert('फाइल साइज 5MB पेक्षा कमी असावी')
-        return
-      }
-      updateFormData('photo', file)
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        updateFormData('photoPreview', e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setFieldError('photo', 'कृपया फक्त इमेज फाइल निवडा')
+      e.target.value = ''
+      return
     }
+    if (file.size > 5 * 1024 * 1024) {
+      setFieldError('photo', 'फोटो फाइल साइज 5MB पेक्षा कमी असावी')
+      e.target.value = ''
+      return
+    }
+
+    setFieldError('photo')
+    updateFormData('photo', file)
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      updateFormData('photoPreview', event.target?.result as string)
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleInputChange = (field: string) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -52,13 +58,21 @@ export default function PersonalInfoSection({
   return (
     <section className="form-section active" id="section1">
       <div className="section-header">
-        <h4><i className="bi bi-person-vcard"></i> वैयक्तिक माहिती</h4>
+        <div className="section-heading-block">
+          <span className="section-eyebrow">Applicant profile</span>
+          <h4><i className="bi bi-person-vcard"></i> वैयक्तिक माहिती</h4>
+          <p className="section-description">नाव, छायाचित्र, आधार आणि कुटुंबीय तपशील अचूकपणे नोंदवा.</p>
+        </div>
       </div>
       <div className="section-body">
-        {/* Photo Upload */}
         <div className="row mb-4">
           <div className="col-12">
             <div className="photo-upload-container">
+              <div className="upload-copy">
+                <span className="upload-kicker">Photo ID</span>
+                <h5>अर्जदाराचा स्पष्ट फोटो जोडा</h5>
+                <p>JPG, PNG किंवा इमेज फॉरमॅट. कमाल आकार 5MB.</p>
+              </div>
               <div className="photo-preview" onClick={() => photoInputRef.current?.click()}>
                 {formData.photoPreview ? (
                   <img src={formData.photoPreview} alt="Photo Preview" />
@@ -83,11 +97,11 @@ export default function PersonalInfoSection({
               >
                 <i className="bi bi-upload"></i> फोटो अपलोड करा
               </button>
+              {errors.photo && <div className="invalid-feedback d-block text-center mt-2">{errors.photo}</div>}
             </div>
           </div>
         </div>
 
-        {/* Name Details */}
         <div className="form-group-card">
           <div className="card-label">1. दिव्यांग व्यक्तीचे नाव</div>
           <div className="row g-3">
@@ -139,7 +153,7 @@ export default function PersonalInfoSection({
 
         {/* Education */}
         <div className="form-group-card">
-          <div className="card-label">3. शिक्षण</div>
+          <div className="card-label">3. शिक्षण <span className="required">*</span></div>
           <div className="row g-3">
             <div className="col-12">
               <div className="education-options">
@@ -160,6 +174,7 @@ export default function PersonalInfoSection({
                   </div>
                 ))}
               </div>
+              {errors.education && <div className="invalid-feedback d-block mt-2">{errors.education}</div>}
             </div>
           </div>
         </div>
@@ -176,6 +191,7 @@ export default function PersonalInfoSection({
                 onChange={handleInputChange('aadhaarNumber')}
                 placeholder="12 अंकी आधार क्रमांक"
                 maxLength={12}
+                inputMode="numeric"
               />
               {errors.aadhaarNumber && <div className="invalid-feedback">{errors.aadhaarNumber}</div>}
             </div>
@@ -194,7 +210,7 @@ export default function PersonalInfoSection({
 
         {/* Marital Status */}
         <div className="form-group-card">
-          <div className="card-label">9. वैवाहिक स्थिती</div>
+          <div className="card-label">9. वैवाहिक स्थिती <span className="required">*</span></div>
           <div className="row g-3">
             <div className="col-12">
               <div className="btn-group-toggle">
@@ -215,13 +231,14 @@ export default function PersonalInfoSection({
                   </div>
                 ))}
               </div>
+              {errors.maritalStatus && <div className="invalid-feedback d-block mt-2">{errors.maritalStatus}</div>}
             </div>
           </div>
         </div>
 
         {/* Religion */}
         <div className="form-group-card">
-          <div className="card-label">10. धर्म</div>
+          <div className="card-label">10. धर्म <span className="required">*</span></div>
           <div className="row g-3">
             <div className="col-12">
               <div className="btn-group-toggle">
@@ -242,13 +259,14 @@ export default function PersonalInfoSection({
                   </div>
                 ))}
               </div>
+              {errors.religion && <div className="invalid-feedback d-block mt-2">{errors.religion}</div>}
             </div>
           </div>
         </div>
 
         {/* Caste */}
         <div className="form-group-card">
-          <div className="card-label">11. जात</div>
+          <div className="card-label">11. जात <span className="required">*</span></div>
           <div className="row g-3">
             <div className="col-12">
               <div className="btn-group-toggle">
@@ -269,13 +287,14 @@ export default function PersonalInfoSection({
                   </div>
                 ))}
               </div>
+              {errors.caste && <div className="invalid-feedback d-block mt-2">{errors.caste}</div>}
             </div>
           </div>
         </div>
 
         {/* Family Relation */}
         <div className="form-group-card">
-          <div className="card-label">12. कुटुंब प्रमुखाशी नाते</div>
+          <div className="card-label">12. कुटुंब प्रमुखाशी नाते <span className="required">*</span></div>
           <div className="row g-3">
             <div className="col-12">
               <div className="btn-group-toggle">
@@ -296,6 +315,7 @@ export default function PersonalInfoSection({
                   </div>
                 ))}
               </div>
+              {errors.familyRelation && <div className="invalid-feedback d-block mt-2">{errors.familyRelation}</div>}
             </div>
           </div>
         </div>

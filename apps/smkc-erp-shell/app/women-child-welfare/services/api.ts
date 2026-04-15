@@ -1,48 +1,63 @@
 'use client'
 
-import { apiClient } from '@smkc/api-client'
 import type { FormData, ApiResponse } from '../types/formTypes'
 
 const BASE = '/api/women-child-welfare'
 
-// Multipart helper — preserves file uploads while attaching the session token
-function getSessionToken(): string | null {
-  try {
-    const raw = sessionStorage.getItem('smkc_session')
-    if (!raw) return null
-    const session = JSON.parse(raw) as { token?: string; expiresAt?: string }
-    if (!session.token) return null
-    if (session.expiresAt && new Date(session.expiresAt) <= new Date()) return null
-    return session.token
-  } catch {
-    return null
-  }
-}
-
 async function uploadForm(method: 'POST' | 'PUT', path: string, formData: globalThis.FormData): Promise<ApiResponse> {
-  const headers: Record<string, string> = {}
-  const token = getSessionToken()
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-  const res = await fetch(path, { method, headers, body: formData })
+  const res = await fetch(path, { method, body: formData })
   if (!res.ok) {
-    throw new Error(`${method} ${path} failed: ${res.status}`)
+    throw await createRequestError(method, path, res)
   }
   return res.json() as Promise<ApiResponse>
 }
 
+async function requestJson(method: 'GET' | 'DELETE', path: string): Promise<ApiResponse> {
+  const res = await fetch(path, { method, cache: 'no-store' })
+  if (!res.ok) {
+    throw await createRequestError(method, path, res)
+  }
+
+  return res.json() as Promise<ApiResponse>
+}
+
+async function createRequestError(method: string, path: string, res: Response): Promise<Error> {
+  let message = `${method} ${path} failed: ${res.status}`
+
+  try {
+    const payload = (await res.json()) as { message?: string }
+    if (payload?.message) {
+      message = payload.message
+    }
+  } catch {
+    // Ignore non-JSON responses and keep the default message.
+  }
+
+  return new Error(message)
+}
+
 function toMultipart(data: Partial<FormData>): globalThis.FormData {
   const fd = new globalThis.FormData()
+  const payload: Record<string, unknown> = {}
+  const payloadKeyMap: Record<string, string> = {
+    disabilityTypes: 'disabilitySelections',
+    assistiveDevices: 'assistiveDeviceSelections',
+  }
+
   for (const [key, value] of Object.entries(data)) {
     if (value instanceof File) {
       fd.append(key, value)
-    } else if (Array.isArray(value)) {
-      fd.append(key, JSON.stringify(value))
     } else if (value !== null && value !== undefined) {
-      fd.append(key, String(value))
+      payload[payloadKeyMap[key] ?? key] = value
     }
   }
+
+  fd.append(
+    'payload',
+    new Blob([JSON.stringify(payload)], { type: 'application/json;charset=UTF-8' }),
+    'payload.json'
+  )
+
   return fd
 }
 
@@ -51,11 +66,11 @@ export function registerDisabledPerson(formData: FormData): Promise<ApiResponse>
 }
 
 export function getRegistration(id: string): Promise<ApiResponse> {
-  return apiClient.get<ApiResponse>(`${BASE}/register/${encodeURIComponent(id)}`)
+  return requestJson('GET', `${BASE}/register/${encodeURIComponent(id)}`)
 }
 
 export function getAllRegistrations(page = 1, limit = 10): Promise<ApiResponse> {
-  return apiClient.get<ApiResponse>(`${BASE}/register?page=${page}&limit=${limit}`)
+  return requestJson('GET', `${BASE}/register?page=${page}&limit=${limit}`)
 }
 
 export function updateRegistration(id: string, formData: Partial<FormData>): Promise<ApiResponse> {
@@ -63,13 +78,11 @@ export function updateRegistration(id: string, formData: Partial<FormData>): Pro
 }
 
 export function deleteRegistration(id: string): Promise<ApiResponse> {
-  return apiClient.delete<ApiResponse>(`${BASE}/register/${encodeURIComponent(id)}`)
+  return requestJson('DELETE', `${BASE}/register/${encodeURIComponent(id)}`)
 }
 
 export function searchRegistrations(query: string, field = 'all'): Promise<ApiResponse> {
-  return apiClient.get<ApiResponse>(
-    `${BASE}/register/search?q=${encodeURIComponent(query)}&field=${encodeURIComponent(field)}`
-  )
+  return requestJson('GET', `${BASE}/register/search?q=${encodeURIComponent(query)}&field=${encodeURIComponent(field)}`)
 }
 
 
