@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { classifyUpstreamFetchError, fetchWithTimeout } from '@/lib/apiErrors'
 
 const LEGACY_API_PREFIX = '/api/women-child-welfare'
 
@@ -58,7 +59,7 @@ export async function proxyWcwcRequest(method: string, pathWithQuery: string, re
       headers.set('content-type', contentType)
     }
 
-    const response = await fetch(buildLegacyUrl(pathWithQuery), {
+    const response = await fetchWithTimeout(buildLegacyUrl(pathWithQuery), {
       method,
       headers,
       body,
@@ -70,15 +71,15 @@ export async function proxyWcwcRequest(method: string, pathWithQuery: string, re
       status: response.status,
       headers: copyResponseHeaders(response.headers),
     })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to reach WCWC API'
+  } catch (err) {
+    const { code, message, status } = classifyUpstreamFetchError(err)
     return NextResponse.json(
       {
         success: false,
         message,
-        errorCode: 'WCWC_PROXY_ERROR',
+        errorCode: code,
       },
-      { status: 502 }
+      { status }
     )
   }
 }

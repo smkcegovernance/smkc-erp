@@ -6,6 +6,7 @@ import { currentUser } from '@smkc/auth'
 import { DEPARTMENTS } from '@smkc/types'
 import type { DashboardViewKey, UserRole } from '@smkc/types'
 import DeptSidebar from './DeptSidebar'
+import { useLanguage } from '../lib/i18n/LanguageContext'
 
 // ── View definitions ──────────────────────────────────────────────────────────
 
@@ -168,6 +169,33 @@ const DEPT_STATS: Partial<Record<string, Record<DashboardViewKey, StatItem[]>>> 
       { value: '345', label: 'Site Inspections Due', icon: 'bi-geo-alt-fill',            color: '#F57F17', trend: 'down', trendValue: '-23' },
       { value: '67',  label: 'Name Transfers Today', icon: 'bi-person-fill',             color: '#0077B6', trend: 'neutral'                  },
       { value: '123', label: 'Objections Resolved',  icon: 'bi-check2-all',              color: '#2E7D32', trend: 'up',   trendValue: '+18' },
+    ],
+  },
+
+  'audit-department': {
+    commissioner: [
+      { value: '₹42.7 Cr', label: 'Annual Budget',          icon: 'bi-currency-rupee',        color: '#7D5A00', trend: 'up',     trendValue: '+5.2%' },
+      { value: '89',        label: 'Proposals Reviewed',     icon: 'bi-clipboard2-check-fill', color: '#7D5A00', trend: 'up',     trendValue: '+12'   },
+      { value: '14',        label: 'Pending Review',         icon: 'bi-hourglass-split',       color: '#F57F17', trend: 'down',   trendValue: '-3'    },
+      { value: '97.8%',     label: 'Overall Compliance',     icon: 'bi-graph-up-arrow',        color: '#2E7D32', trend: 'up',     trendValue: '+1.1%' },
+    ],
+    hod: [
+      { value: '123', label: 'Proposals This Month', icon: 'bi-file-earmark-text-fill',  color: '#7D5A00', trend: 'up',   trendValue: '+18' },
+      { value: '14',  label: 'Pending Review',       icon: 'bi-hourglass-split',         color: '#F57F17', trend: 'down', trendValue: '-5'  },
+      { value: '6',   label: 'Objections Raised',    icon: 'bi-exclamation-circle-fill', color: '#E65100', trend: 'down', trendValue: '-2'  },
+      { value: '103', label: 'Approved This Month',  icon: 'bi-check2-circle',           color: '#2E7D32', trend: 'up',   trendValue: '+15' },
+    ],
+    accounts: [
+      { value: '₹38.1 Cr', label: 'Revenue Collected',  icon: 'bi-graph-up-arrow',        color: '#7D5A00', trend: 'up',   trendValue: '89.2%' },
+      { value: '₹4.6 Cr',  label: 'Expenditure Pending',icon: 'bi-hourglass-split',       color: '#F57F17', trend: 'down', trendValue: '-₹0.3 Cr' },
+      { value: '14',        label: 'Audit Observations', icon: 'bi-clipboard-check-fill',  color: '#7D5A00', trend: 'down', trendValue: '-3' },
+      { value: '₹42.7 Cr', label: 'Annual Budget',       icon: 'bi-currency-rupee',        color: '#2E7D32', trend: 'up',   trendValue: '+5.2%' },
+    ],
+    operations: [
+      { value: '103', label: 'Proposals Approved', icon: 'bi-clipboard2-check-fill', color: '#7D5A00', trend: 'up',   trendValue: '+15' },
+      { value: '14',  label: 'Pending Processing', icon: 'bi-arrow-repeat',          color: '#F57F17', trend: 'down', trendValue: '-5'  },
+      { value: '6',   label: 'Objections Raised',  icon: 'bi-exclamation-circle-fill',color: '#E65100', trend: 'down', trendValue: '-2'  },
+      { value: '3',   label: 'Reports Overdue',    icon: 'bi-alarm-fill',            color: '#BF360C', trend: 'neutral'                   },
     ],
   },
 
@@ -387,6 +415,33 @@ const DEPT_STATS: Partial<Record<string, Record<DashboardViewKey, StatItem[]>>> 
     ],
   },
 
+  pms: {
+    commissioner: [
+      { value: '1,842',    label: 'Total Employees',               icon: 'bi-people-fill',          color: '#1565C0', trend: 'neutral'                     },
+      { value: '₹3.24 Cr', label: 'Current Month Salary',          icon: 'bi-currency-rupee',       color: '#2E7D32', trend: 'up',   trendValue: '+₹0.12Cr' },
+      { value: '8',        label: 'Recently Retired (This Month)',  icon: 'bi-person-dash-fill',     color: '#5D4037', trend: 'neutral'                     },
+      { value: '14',       label: 'Upcoming Retirements (90 days)',icon: 'bi-hourglass-split',      color: '#F57F17', trend: 'neutral'                     },
+    ],
+    hod: [
+      { value: '1,842',    label: 'Total Employees',               icon: 'bi-people-fill',          color: '#1565C0', trend: 'neutral'                     },
+      { value: '₹3.24 Cr', label: 'Current Month Salary',          icon: 'bi-currency-rupee',       color: '#2E7D32', trend: 'up',   trendValue: '+₹0.12Cr' },
+      { value: '8',        label: 'Recently Retired (This Month)',  icon: 'bi-person-dash-fill',     color: '#5D4037', trend: 'neutral'                     },
+      { value: '14',       label: 'Upcoming Retirements (90 days)',icon: 'bi-hourglass-split',      color: '#F57F17', trend: 'neutral'                     },
+    ],
+    accounts: [
+      { value: '₹3.24 Cr', label: 'Current Month Salary',          icon: 'bi-currency-rupee',       color: '#2E7D32', trend: 'up',   trendValue: '+₹0.12Cr' },
+      { value: '₹18.9 L',  label: 'Deductions This Month',         icon: 'bi-dash-circle-fill',     color: '#E65100', trend: 'neutral'                     },
+      { value: '₹4.2 L',   label: 'Arrears Paid This Month',       icon: 'bi-clock-history',        color: '#F57F17', trend: 'neutral'                     },
+      { value: '23',        label: 'Salary Advances Outstanding',   icon: 'bi-wallet2',              color: '#4A148C', trend: 'down', trendValue: '-3'       },
+    ],
+    operations: [
+      { value: '1,842',    label: 'Total Employees',               icon: 'bi-people-fill',          color: '#1565C0', trend: 'neutral'                     },
+      { value: '8',        label: 'Recently Retired (This Month)',  icon: 'bi-person-dash-fill',     color: '#5D4037', trend: 'neutral'                     },
+      { value: '14',       label: 'Upcoming Retirements (90 days)',icon: 'bi-hourglass-split',      color: '#F57F17', trend: 'neutral'                     },
+      { value: '₹3.24 Cr', label: 'Current Month Salary',          icon: 'bi-currency-rupee',       color: '#2E7D32', trend: 'up',   trendValue: '+₹0.12Cr' },
+    ],
+  },
+
   pwd: {
     commissioner: [
       { value: '234',     label: 'Works in Progress',        icon: 'bi-cone-striped',      color: '#37474F', trend: 'neutral'                    },
@@ -428,11 +483,57 @@ interface DashboardPageProps {
 export default function DashboardPage({ departmentKey }: DashboardPageProps) {
   const user = currentUser()
   const role = (user?.role ?? 'unknown') as UserRole
+  const { T, tStat } = useLanguage()
 
   const dept = DEPARTMENTS.find((d) => d.key === departmentKey)
+  const deptT = T.depts[departmentKey]
+
+  // ── Build translated view defs ────────────────────────────────────────────
+  const VIEW_DEFS_T = [
+    { key: 'commissioner' as DashboardViewKey, label: T.views.commissioner, icon: 'bi-award-fill'       },
+    { key: 'hod'          as DashboardViewKey, label: T.views.hod,          icon: 'bi-diagram-3-fill'   },
+    { key: 'accounts'     as DashboardViewKey, label: T.views.accounts,     icon: 'bi-bank2'            },
+    { key: 'operations'   as DashboardViewKey, label: T.views.operations,   icon: 'bi-gear-fill'        },
+  ]
+
+  // ── Build translated table columns ────────────────────────────────────────
+  const VIEW_TABLE_COLUMNS_T: Record<DashboardViewKey, { label: string; width?: string }[]> = {
+    commissioner: [
+      { label: T.tableColumns.departmentZone, width: '25%' },
+      { label: T.tableColumns.demand,         width: '18%' },
+      { label: T.tableColumns.collection,     width: '18%' },
+      { label: T.tableColumns.pctAchieved,    width: '13%' },
+      { label: T.tableColumns.status,         width: '13%' },
+      { label: T.tableColumns.action,         width: '13%' },
+    ],
+    hod: [
+      { label: T.tableColumns.applicationNo,  width: '20%' },
+      { label: T.tableColumns.applicantName,  width: '27%' },
+      { label: T.tableColumns.date,           width: '14%' },
+      { label: T.tableColumns.type,           width: '14%' },
+      { label: T.tableColumns.status,         width: '12%' },
+      { label: T.tableColumns.action,         width: '13%' },
+    ],
+    accounts: [
+      { label: T.tableColumns.receiptNo,      width: '18%' },
+      { label: T.tableColumns.name,           width: '27%' },
+      { label: T.tableColumns.amount,         width: '18%' },
+      { label: T.tableColumns.mode,           width: '15%' },
+      { label: T.tableColumns.date,           width: '12%' },
+      { label: T.tableColumns.action,         width: '10%' },
+    ],
+    operations: [
+      { label: T.tableColumns.taskId,         width: '14%' },
+      { label: T.tableColumns.description,    width: '30%' },
+      { label: T.tableColumns.assignedTo,     width: '20%' },
+      { label: T.tableColumns.dueDate,        width: '15%' },
+      { label: T.tableColumns.status,         width: '11%' },
+      { label: T.tableColumns.action,         width: '10%' },
+    ],
+  }
 
   const allowedViewKeys: DashboardViewKey[] = ROLE_VIEWS[role] ?? ROLE_VIEWS.unknown
-  const availableViews = VIEW_DEFS.filter((v) => allowedViewKeys.includes(v.key))
+  const availableViews = VIEW_DEFS_T.filter((v) => allowedViewKeys.includes(v.key))
 
   const [activeView, setActiveView] = useState<DashboardViewKey>(
     availableViews[0]?.key ?? 'operations'
@@ -446,18 +547,18 @@ export default function DashboardPage({ departmentKey }: DashboardPageProps) {
     return (
       <main className="erp-main">
         <p style={{ color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
-          Department not found.
+          {T.nav.deptNotFound}
         </p>
         <Link href="/" style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>
-          ← Back to Home
+          {T.nav.backHome}
         </Link>
       </main>
     )
   }
 
   const stats   = getStats(departmentKey, activeView)
-  const columns = VIEW_TABLE_COLUMNS[activeView]
-  const activeViewDef = VIEW_DEFS.find((v) => v.key === activeView)
+  const columns = VIEW_TABLE_COLUMNS_T[activeView]
+  const activeViewDef = VIEW_DEFS_T.find((v) => v.key === activeView)
 
   return (
     <div className="dept-layout">
@@ -471,12 +572,12 @@ export default function DashboardPage({ departmentKey }: DashboardPageProps) {
       {/* ── Breadcrumb ── */}
       <nav className="dash-breadcrumb" aria-label="Breadcrumb">
         <Link href="/" className="dash-breadcrumb-home">
-          <i className="bi bi-house-door-fill" aria-hidden="true" /> Home
+          <i className="bi bi-house-door-fill" aria-hidden="true" /> {T.nav.home}
         </Link>
         <span className="dash-breadcrumb-sep" aria-hidden="true">›</span>
-        <span className="dash-breadcrumb-current">{dept.label}</span>
+        <span className="dash-breadcrumb-current">{deptT?.label ?? dept.label}</span>
         <span className="dash-breadcrumb-sep" aria-hidden="true">›</span>
-        <span className="dash-breadcrumb-current">Dashboard</span>
+        <span className="dash-breadcrumb-current">{T.nav.dashboard}</span>
       </nav>
 
       {/* ── Department Header ── */}
@@ -498,8 +599,8 @@ export default function DashboardPage({ departmentKey }: DashboardPageProps) {
           <i className={`bi ${dept.icon}`} />
         </div>
         <div className="dash-dept-info">
-          <h1 className="dash-dept-title">{dept.label}</h1>
-          <p className="dash-dept-desc">{dept.description}</p>
+          <h1 className="dash-dept-title">{deptT?.label ?? dept.label}</h1>
+          <p className="dash-dept-desc">{deptT?.description ?? dept.description}</p>
         </div>
         <div className="dash-role-badge" aria-label={`Logged in as ${role}`}>
           <i className="bi bi-person-badge-fill" aria-hidden="true" />
@@ -527,7 +628,7 @@ export default function DashboardPage({ departmentKey }: DashboardPageProps) {
       <div className="dash-filters" role="search" aria-label="Dashboard filters">
         <div className="dash-filter-group">
           <label htmlFor={`df-from-${departmentKey}`} className="dash-filter-label">
-            From
+            {T.filters.from}
           </label>
           <input
             id={`df-from-${departmentKey}`}
@@ -540,7 +641,7 @@ export default function DashboardPage({ departmentKey }: DashboardPageProps) {
 
         <div className="dash-filter-group">
           <label htmlFor={`df-to-${departmentKey}`} className="dash-filter-label">
-            To
+            {T.filters.to}
           </label>
           <input
             id={`df-to-${departmentKey}`}
@@ -553,7 +654,7 @@ export default function DashboardPage({ departmentKey }: DashboardPageProps) {
 
         <div className="dash-filter-group dash-filter-search">
           <label htmlFor={`df-search-${departmentKey}`} className="dash-filter-label">
-            Search
+            {T.filters.search}
           </label>
           <div className="dash-filter-search-wrap">
             <i className="bi bi-search dash-filter-search-icon" aria-hidden="true" />
@@ -561,7 +662,7 @@ export default function DashboardPage({ departmentKey }: DashboardPageProps) {
               id={`df-search-${departmentKey}`}
               type="search"
               className="dash-filter-input"
-              placeholder="Name, ID, or reference number…"
+              placeholder={T.filters.searchPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -570,7 +671,7 @@ export default function DashboardPage({ departmentKey }: DashboardPageProps) {
 
         <div className="dash-filter-actions">
           <button type="button" className="dash-filter-btn-apply">
-            <i className="bi bi-funnel-fill" aria-hidden="true" /> Apply
+            <i className="bi bi-funnel-fill" aria-hidden="true" /> {T.filters.apply}
           </button>
           <button
             type="button"
@@ -581,7 +682,7 @@ export default function DashboardPage({ departmentKey }: DashboardPageProps) {
               setSearch('')
             }}
           >
-            <i className="bi bi-x-circle" aria-hidden="true" /> Reset
+            <i className="bi bi-x-circle" aria-hidden="true" /> {T.filters.reset}
           </button>
         </div>
       </div>
@@ -599,7 +700,7 @@ export default function DashboardPage({ departmentKey }: DashboardPageProps) {
             </div>
             <div className="dash-stat-body">
               <span className="dash-stat-value">{stat.value}</span>
-              <span className="dash-stat-label">{stat.label}</span>
+              <span className="dash-stat-label">{tStat(stat.label)}</span>
               {stat.trendValue && (
                 <span className={`dash-stat-trend ${stat.trend}`}>
                   {stat.trend === 'up'   && <i className="bi bi-arrow-up-short"   aria-hidden="true" />}
@@ -616,20 +717,20 @@ export default function DashboardPage({ departmentKey }: DashboardPageProps) {
       <div className="dash-data-section">
         <div className="dash-data-header">
           <h2 className="dash-data-title">
-            {activeViewDef?.label} — Records
+            {activeViewDef?.label} — {T.table.records}
           </h2>
           <div className="dash-data-header-actions">
             <button type="button" className="dash-data-btn">
-              <i className="bi bi-download" aria-hidden="true" /> Export
+              <i className="bi bi-download" aria-hidden="true" /> {T.table.export}
             </button>
             <button type="button" className="dash-data-btn dash-data-btn-primary">
-              <i className="bi bi-plus-lg" aria-hidden="true" /> New
+              <i className="bi bi-plus-lg" aria-hidden="true" /> {T.table.newRecord}
             </button>
           </div>
         </div>
 
         <div className="dash-table-wrap">
-          <table className="dash-table" aria-label={`${dept.label} — ${activeViewDef?.label} records`}>
+          <table className="dash-table" aria-label={`${deptT?.label ?? dept.label} — ${activeViewDef?.label} records`}>
             <thead>
               <tr>
                 {columns.map((col, i) => (
@@ -642,11 +743,8 @@ export default function DashboardPage({ departmentKey }: DashboardPageProps) {
                 <td colSpan={columns.length} className="dash-table-empty">
                   <div className="dash-empty-state">
                     <i className="bi bi-database-fill-slash" aria-hidden="true" />
-                    <p>Connect to API to load live data</p>
-                    <span>
-                      Use the date range and search filters above to query records.
-                      Data will populate here once the backend is connected.
-                    </span>
+                    <p>{T.table.emptyTitle}</p>
+                    <span>{T.table.emptyDesc}</span>
                   </div>
                 </td>
               </tr>

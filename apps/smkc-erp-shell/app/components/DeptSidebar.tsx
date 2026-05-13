@@ -5,6 +5,9 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { DEPARTMENTS } from '@smkc/types'
 import { DEPT_MENUS, type MenuGroup } from '../lib/dept-menus'
+import { useLanguage } from '../lib/i18n/LanguageContext'
+import { usePermissions, hasMenuAccess } from '../lib/permissions'
+import { useDepts } from '../lib/DeptContext'
 
 const GROUP_ORDER: Array<MenuGroup['key']> = ['transactions', 'applications', 'reports', 'masters']
 
@@ -16,7 +19,14 @@ interface DeptSidebarProps {
 
 export default function DeptSidebar({ deptKey, isOpen, onToggle }: DeptSidebarProps) {
   const pathname = usePathname()
+  const { T, tMenu, lang } = useLanguage()
+  const { permissions } = usePermissions()
+  const { getDept } = useDepts()
   const dept = DEPARTMENTS.find((d) => d.key === deptKey)
+  const dbDept = getDept(deptKey)
+  const deptLabel = lang === 'mr'
+    ? (dbDept?.nameMr || dbDept?.nameEn || T.depts[deptKey]?.label || dept?.label || deptKey)
+    : (dbDept?.nameEn || T.depts[deptKey]?.label || dept?.label || deptKey)
   const groups = DEPT_MENUS[deptKey] ?? []
 
   // Track which groups are expanded (all open by default)
@@ -39,6 +49,14 @@ export default function DeptSidebar({ deptKey, isOpen, onToggle }: DeptSidebarPr
   const orderedGroups = GROUP_ORDER
     .map((key) => groups.find((g) => g.key === key))
     .filter((g): g is MenuGroup => g !== undefined)
+    .map((g) => ({
+      ...g,
+      // While permissions are loading, show all items (no flicker/flash of empty sidebar)
+      items: g.items.filter((item) =>
+        permissions === null || hasMenuAccess(permissions, deptKey, item.key)
+      ),
+    }))
+    .filter((g) => g.items.length > 0)
 
   return (
     <>
@@ -53,7 +71,7 @@ export default function DeptSidebar({ deptKey, isOpen, onToggle }: DeptSidebarPr
 
       <aside
         className={`dept-sidebar${isOpen ? ' open' : ''}`}
-        aria-label={`${dept?.label ?? 'Department'} navigation`}
+        aria-label={`${deptLabel} navigation`}
       >
         {/* ── Sidebar header ── */}
         <div className="dept-sidebar-header">
@@ -61,13 +79,13 @@ export default function DeptSidebar({ deptKey, isOpen, onToggle }: DeptSidebarPr
             <i className={`bi ${dept?.icon ?? 'bi-grid-fill'}`} aria-hidden="true" />
           </div>
           <div className="dept-sidebar-dept-name">
-            <span>{dept?.label ?? deptKey}</span>
+            <span>{deptLabel}</span>
           </div>
           <button
             type="button"
             className="dept-sidebar-close"
             onClick={onToggle}
-            aria-label="Close sidebar"
+            aria-label={T.nav.closeSidebar}
           >
             <i className="bi bi-x-lg" aria-hidden="true" />
           </button>
@@ -80,7 +98,7 @@ export default function DeptSidebar({ deptKey, isOpen, onToggle }: DeptSidebarPr
             className={`dept-sidebar-dashboard-link${pathname === `/${deptKey}/dashboard` ? ' active' : ''}`}
           >
             <i className="bi bi-speedometer2" aria-hidden="true" />
-            <span>Dashboard</span>
+            <span>{T.nav.dashboard}</span>
           </Link>
         </div>
 
@@ -98,7 +116,7 @@ export default function DeptSidebar({ deptKey, isOpen, onToggle }: DeptSidebarPr
                   aria-expanded={isExpanded}
                 >
                   <i className={`bi ${group.icon}`} aria-hidden="true" />
-                  <span>{group.label}</span>
+                  <span>{T.groups[group.key as keyof typeof T.groups] ?? group.label}</span>
                   <i className="bi bi-chevron-down dept-sidebar-chevron" aria-hidden="true" />
                 </button>
 
@@ -116,7 +134,7 @@ export default function DeptSidebar({ deptKey, isOpen, onToggle }: DeptSidebarPr
                             {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                           >
                             <i className={`bi ${item.icon}`} aria-hidden="true" />
-                            <span>{item.label}</span>
+                            <span>{tMenu(deptKey, item.key, item.label)}</span>
                           </Link>
                         </li>
                       )

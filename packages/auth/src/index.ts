@@ -2,10 +2,15 @@ import type { Session, User, UserRole } from '@smkc/types'
 
 const SESSION_KEY = 'smkc_session'
 
-const USER_ID_PATTERN = /^[A-Za-z0-9]{8}$/
+const USER_ID_PATTERN = /^[A-Za-z0-9]{1,8}$/
 
-export function isValidMockUserId(userId: string): boolean {
+export function isValidErpUserId(userId: string): boolean {
   return USER_ID_PATTERN.test(userId.trim())
+}
+
+/** @deprecated kept for backward compatibility — use loginWithServer instead */
+export function isValidMockUserId(userId: string): boolean {
+  return isValidErpUserId(userId)
 }
 
 /**
@@ -15,7 +20,7 @@ export function isValidMockUserId(userId: string): boolean {
  *   HOD  → hod           (e.g. HOD10001)
  *   ACCT → account       (e.g. ACCT0001)
  *   BANK → bank          (e.g. BANK0001)
- *   *    → operator      (any other 8-char ID)
+ *   *    → operator      (any other ID)
  */
 function deriveRole(userId: string): UserRole {
   const p = userId.toUpperCase()
@@ -26,9 +31,10 @@ function deriveRole(userId: string): UserRole {
   return 'operator'
 }
 
+/** @deprecated kept for tests only — real login goes through loginWithServer */
 export function createMockSession(userId: string, password: string): Session | null {
   const normalizedUserId = userId.trim()
-  if (!isValidMockUserId(normalizedUserId) || password.trim().length === 0) {
+  if (!isValidErpUserId(normalizedUserId) || password.trim().length === 0) {
     return null
   }
 
@@ -48,6 +54,67 @@ export function createMockSession(userId: string, password: string): Session | n
     user,
     token: `mock-${normalizedUserId}-${now}`,
     expiresAt: new Date(now + 8 * 60 * 60 * 1000).toISOString(),
+  }
+}
+
+export interface LoginResult {
+  success: boolean
+  message: string
+  session: Session | null
+}
+
+/**
+ * Authenticates against ULBERP.USERDET via the ERP auth API route.
+ * Validates USER_VIFLAG, USER_LOCK, USER_FROM/USER_TO, and BASE64 password.
+ */
+export async function loginWithServer(userId: string, password: string): Promise<LoginResult> {
+  try {
+    const res = await fetch('/api/erp-auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userId.trim().toUpperCase(), password: password.trim() }),
+      cache: 'no-store',
+    })
+
+    const json = await res.json() as {
+      success: boolean
+      message?: string
+      data?: {
+        userId: string
+        name: string
+        status: string
+        validFrom?: string
+        validTo?: string
+        roleId: number
+        role: string
+      } | null
+    }
+
+    if (!json.success || !json.data) {
+      return { success: false, message: json.message ?? 'Login failed', session: null }
+    }
+
+    const d = json.data
+    const role = (d.role ?? 'operator') as UserRole
+
+    const user: User = {
+      userId:   d.userId,
+      name:     d.name ?? d.userId,
+      role,
+      roleId:   d.roleId ?? 0,
+      status:   d.status ?? 'A',
+    }
+
+    const now = Date.now()
+    const session: Session = {
+      user,
+      token:     `erp-${d.userId}-${now}`,
+      expiresAt: new Date(now + 8 * 60 * 60 * 1000).toISOString(),
+    }
+
+    return { success: true, message: 'Login successful', session }
+  } catch {
+    return { success: false, message: 'Login service unavailable. Please check network.', session: null }
   }
 }
 
@@ -83,3 +150,4 @@ export function isAuthenticated(): boolean {
 export function currentUser(): User | null {
   return getSession()?.user ?? null
 }
+

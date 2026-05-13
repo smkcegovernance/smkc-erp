@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { apiClient } from '@smkc/api-client'
+import { DEPARTMENTS } from '@smkc/types'
 import type { WaterConnectionDashboard, WaterRevenueDashboard } from '@smkc/types'
+import DeptSidebar from '../../components/DeptSidebar'
 import RevenueTab from './RevenueTab'
 import ConnectionsTab from './ConnectionsTab'
+import { useLanguage } from '../../lib/i18n/LanguageContext'
 
 type Tab = 'revenue' | 'connections'
 
@@ -22,13 +25,19 @@ const WARDS = [
   { code: '2', name: 'Miraj' },
 ]
 
+const DEPT_KEY = 'water-tax'
+
 export default function WaterDashboard() {
-  const [tab,       setTab]      = useState<Tab>('revenue')
-  const [finYr,     setFinYr]    = useState('2026-2027')
-  const [wardCode,  setWardCode] = useState('0')
-  const [divCode,   setDivCode]  = useState('0')
-  const [divisions, setDivisions] = useState<Division[]>([])
+  const dept = DEPARTMENTS.find((d) => d.key === DEPT_KEY)!
+  const { T } = useLanguage()
+
+  const [tab,        setTab]       = useState<Tab>('revenue')
+  const [finYr,      setFinYr]     = useState('2026-2027')
+  const [wardCode,   setWardCode]  = useState('0')
+  const [divCode,    setDivCode]   = useState('0')
+  const [divisions,  setDivisions] = useState<Division[]>([])
   const [refreshing, setRefreshing] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const [revenue,     setRevenue]     = useState<WaterRevenueDashboard | null>(null)
   const [connections, setConnections] = useState<WaterConnectionDashboard | null>(null)
@@ -37,7 +46,6 @@ export default function WaterDashboard() {
   const [errRev,      setErrRev]      = useState<string | null>(null)
   const [errConn,     setErrConn]     = useState<string | null>(null)
 
-  // Load division list whenever ward changes
   useEffect(() => {
     setDivCode('0')
     apiClient.get<Division[]>(
@@ -87,39 +95,80 @@ export default function WaterDashboard() {
   const isLoading = loadingRev || loadingConn
 
   return (
-    <div className="wt-root">
-      {/* ═══ BREADCRUMB ═══ */}
-      <div style={{ padding: '0.5rem 1.5rem 0' }}>
-        <Link href="/" style={{ color: 'var(--wt-primary, #0ea5e9)', textDecoration: 'none', fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-          <i className="bi bi-house-fill" />
-          All Departments
-        </Link>
-      </div>
+    <div className="dept-layout">
+      <DeptSidebar
+        deptKey={DEPT_KEY}
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen((v) => !v)}
+      />
 
-      {/* ═══ PAGE HEADER ═══ */}
-      <div className="wt-page-header">
-        <div className="wt-page-header-left">
-          <div className="wt-page-icon">
-            <i className="bi bi-droplet-fill" />
+      <main className="erp-main">
+        {/* ── Breadcrumb ── */}
+        <nav className="dash-breadcrumb" aria-label="Breadcrumb">
+          <Link href="/" className="dash-breadcrumb-home">
+            <i className="bi bi-house-door-fill" aria-hidden="true" /> {T.nav.home}
+          </Link>
+          <span className="dash-breadcrumb-sep" aria-hidden="true">›</span>
+          <span className="dash-breadcrumb-current">{dept.label}</span>
+          <span className="dash-breadcrumb-sep" aria-hidden="true">›</span>
+          <span className="dash-breadcrumb-current">{T.nav.dashboard}</span>
+        </nav>
+
+        {/* ── Department Header ── */}
+        <div className="dash-dept-header">
+          <button
+            type="button"
+            className="dept-sidebar-toggle-btn"
+            onClick={() => setSidebarOpen((v) => !v)}
+            aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+            aria-expanded={sidebarOpen}
+          >
+            <i className={`bi ${sidebarOpen ? 'bi-layout-sidebar-inset' : 'bi-layout-sidebar'}`} aria-hidden="true" />
+          </button>
+          <div
+            className="dash-dept-icon"
+            style={{ background: dept.colorBg, color: dept.color }}
+            aria-hidden="true"
+          >
+            <i className={`bi ${dept.icon}`} />
           </div>
-          <div>
-            <h1 className="wt-page-title">Water Tax Department</h1>
-            <p className="wt-page-subtitle">
-              Live dashboard
-              <span className="wt-badge-year">{finYr}</span>
-              {isLoading && <span className="wt-live-dot" title="Loading…" />}
+          <div className="dash-dept-info">
+            <h1 className="dash-dept-title">{dept.label}</h1>
+            <p className="dash-dept-desc">
+              {dept.description}
+              {isLoading && <span className="wt-live-dot" title="Loading…" style={{ marginLeft: '0.5rem' }} />}
             </p>
           </div>
         </div>
 
-        <div className="wt-page-header-right">
-          {/* Ward filter */}
-          <div className="wt-filter-group">
-            <label className="wt-filter-label">
-              <i className="bi bi-geo-alt" />
-            </label>
+        {/* ── View Tabs ── */}
+        <div className="dash-view-tabs" role="tablist" aria-label="Dashboard views">
+          <button
+            role="tab"
+            aria-selected={tab === 'revenue'}
+            className={`dash-view-tab${tab === 'revenue' ? ' active' : ''}`}
+            onClick={() => setTab('revenue')}
+          >
+            <i className="bi bi-graph-up-arrow" aria-hidden="true" />
+            <span>Revenue &amp; Collection</span>
+          </button>
+          <button
+            role="tab"
+            aria-selected={tab === 'connections'}
+            className={`dash-view-tab${tab === 'connections' ? ' active' : ''}`}
+            onClick={() => setTab('connections')}
+          >
+            <i className="bi bi-diagram-3-fill" aria-hidden="true" />
+            <span>Water Connections</span>
+          </button>
+        </div>
+
+        {/* ── Filters Bar ── */}
+        <div className="dash-filters" role="search" aria-label="Dashboard filters">
+          <div className="dash-filter-group">
+            <label className="dash-filter-label">Ward</label>
             <select
-              className="wt-select"
+              className="dash-filter-input"
               value={wardCode}
               onChange={e => setWardCode(e.target.value)}
             >
@@ -129,14 +178,11 @@ export default function WaterDashboard() {
             </select>
           </div>
 
-          {/* Division filter — only when a specific ward is selected */}
           {wardCode !== '0' && (
-            <div className="wt-filter-group">
-              <label className="wt-filter-label">
-                <i className="bi bi-diagram-2" />
-              </label>
+            <div className="dash-filter-group">
+              <label className="dash-filter-label">Division</label>
               <select
-                className="wt-select"
+                className="dash-filter-input"
                 value={divCode}
                 onChange={e => setDivCode(e.target.value)}
               >
@@ -148,12 +194,10 @@ export default function WaterDashboard() {
             </div>
           )}
 
-          <div className="wt-filter-group">
-            <label className="wt-filter-label">
-              <i className="bi bi-calendar3" />
-            </label>
+          <div className="dash-filter-group">
+            <label className="dash-filter-label">Financial Year</label>
             <select
-              className="wt-select"
+              className="dash-filter-input"
               value={finYr}
               onChange={e => setFinYr(e.target.value)}
               disabled={tab === 'connections'}
@@ -164,55 +208,41 @@ export default function WaterDashboard() {
             </select>
           </div>
 
-          <button
-            className={`wt-refresh-btn${refreshing ? ' spinning' : ''}`}
-            onClick={handleRefresh}
-            title="Refresh data"
-            disabled={refreshing}
-          >
-            <i className="bi bi-arrow-clockwise" />
-          </button>
+          <div className="dash-filter-actions">
+            <button
+              type="button"
+              className="dash-filter-btn-apply"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="Refresh data"
+            >
+              <i className={`bi bi-arrow-clockwise${refreshing ? ' spinning' : ''}`} aria-hidden="true" />
+              {refreshing ? ' Refreshing…' : ' Refresh'}
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* ═══ TAB NAV ═══ */}
-      <div className="wt-tab-nav">
-        <button
-          className={`wt-tab-btn${tab === 'revenue' ? ' active' : ''}`}
-          onClick={() => setTab('revenue')}
-        >
-          <i className="bi bi-graph-up-arrow" />
-          <span>Revenue &amp; Collection</span>
-        </button>
-        <button
-          className={`wt-tab-btn${tab === 'connections' ? ' active' : ''}`}
-          onClick={() => setTab('connections')}
-        >
-          <i className="bi bi-diagram-3-fill" />
-          <span>Water Connections</span>
-        </button>
-      </div>
-
-      {/* ═══ TAB CONTENT ═══ */}
-      <div className="wt-content">
-        {tab === 'revenue' && (
-          <RevenueTab
-            data={revenue}
-            loading={loadingRev}
-            error={errRev}
-            finYr={finYr}
-            onRetry={loadRevenue}
-          />
-        )}
-        {tab === 'connections' && (
-          <ConnectionsTab
-            data={connections}
-            loading={loadingConn}
-            error={errConn}
-            onRetry={loadConnections}
-          />
-        )}
-      </div>
+        {/* ── Tab Content ── */}
+        <div style={{ padding: '0 1.5rem 2rem' }}>
+          {tab === 'revenue' && (
+            <RevenueTab
+              data={revenue}
+              loading={loadingRev}
+              error={errRev}
+              finYr={finYr}
+              onRetry={loadRevenue}
+            />
+          )}
+          {tab === 'connections' && (
+            <ConnectionsTab
+              data={connections}
+              loading={loadingConn}
+              error={errConn}
+              onRetry={loadConnections}
+            />
+          )}
+        </div>
+      </main>
     </div>
   )
 }

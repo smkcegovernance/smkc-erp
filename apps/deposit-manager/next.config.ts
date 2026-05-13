@@ -2,7 +2,7 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   basePath: '/depositmanager',
-  reactCompiler: true,
+  reactCompiler: process.env.NODE_ENV === 'production',
   poweredByHeader: false,
   compress: true,
   async headers() {

@@ -544,6 +544,8 @@ export default function DocumentsBenefitsSection({
                 </div>
               </div>
             </div>
+            {/* Surveyor section — hidden, re-enable by changing false to true */}
+            {false && (
             <div className="col-md-6">
               <div className="signature-box">
                 <h6>सर्वेक्षण करणाऱ्याचे नाव</h6>
@@ -616,6 +618,7 @@ export default function DocumentsBenefitsSection({
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
 

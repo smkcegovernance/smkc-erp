@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "SMKC_Disabilities_Registration/nextjs-app"
   ],
   "scripts": {
     "dev": "npm run dev --workspace=apps/smkc-erp-shell",
@@ -12,7 +13,14 @@
     "dev:deposit-manager": "npm run dev --workspace=apps/deposit-manager",
     "build:deposit-manager": "npm run build --workspace=apps/deposit-manager",
     "start:deposit-manager": "npm run start --workspace=apps/deposit-manager",
+    "dev:disability-registration": "npm run dev --workspace=smkc-disabilities-registration",
+    "build:disability-registration": "npm run build --workspace=smkc-disabilities-registration",
+    "start:disability-registration": "npm run start --workspace=smkc-disabilities-registration",
+    "dev:all": "concurrently -n shell,deposit,disability -c blue,green,yellow \"npm run dev\" \"npm run dev:deposit-manager\" \"npm run dev:disability-registration\"",
     "lint": "npm run lint --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   },
   "engines": {
     "node": ">=20.0.0"

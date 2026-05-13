@@ -1,6 +1,6 @@
 'use client'
 
-import { ChangeEvent } from 'react'
+import { ChangeEvent, useState } from 'react'
 import { FormData } from '../../types/formTypes'
 
 interface AddressContactSectionProps {
@@ -9,6 +9,8 @@ interface AddressContactSectionProps {
   errors: Record<string, string>
   onNext: () => void
   onPrev: () => void
+  mobileVerified: boolean
+  onMobileVerified: (verified: boolean) => void
 }
 
 export default function AddressContactSection({
@@ -17,7 +19,16 @@ export default function AddressContactSection({
   errors,
   onNext,
   onPrev,
+  mobileVerified,
+  onMobileVerified,
 }: AddressContactSectionProps) {
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpInput, setOtpInput] = useState('')
+  const [otpLoading, setOtpLoading] = useState(false)
+  const [otpError, setOtpError] = useState('')
+  const [otpSuccess, setOtpSuccess] = useState('')
+  const [resendCooldown, setResendCooldown] = useState(0)
+
   const handleInputChange = (field: string) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     let value = e.target.value
     
@@ -32,8 +43,118 @@ export default function AddressContactSection({
     if (field === 'ifscCode') {
       value = value.toUpperCase()
     }
-    
+
+    if (field === 'mobileNumber') {
+      setOtpSent(false)
+      setOtpInput('')
+      setOtpError('')
+      setOtpSuccess('')
+      onMobileVerified(false)
+    }
+
     updateFormData(field, value)
+  }
+
+  const startResendCooldown = () => {
+    setResendCooldown(30)
+    const timer = setInterval(() => {
+      setResendCooldown(prev => {
+        if (prev <= 1) { clearInterval(timer); return 0 }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  const handleSendOtp = async () => {
+    if (!/^\d{10}$/.test(formData.mobileNumber)) {
+      setOtpError('कृपया वैध 10 अंकी मोबाईल क्रमांक प्रविष्ट करा')
+      return
+    }
+    setOtpLoading(true)
+    setOtpError('')
+    setOtpSuccess('')
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setOtpError('तुमचे इंटरनेट कनेक्शन बंद आहे. कृपया इंटरनेट सुरू करून पुन्हा प्रयत्न करा.')
+      setOtpLoading(false)
+      return
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 15_000)
+
+    try {
+      const res = await fetch('/api/disability/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile: formData.mobileNumber }),
+        signal: controller.signal,
+      })
+      clearTimeout(timer)
+      const data = await res.json()
+      if (data.success) {
+        setOtpSent(true)
+        setOtpInput('')
+        setOtpSuccess('OTP यशस्वीरित्या पाठवला गेला')
+        startResendCooldown()
+      } else {
+        setOtpError(data.message || 'OTP पाठवताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.')
+      }
+    } catch (err) {
+      clearTimeout(timer)
+      if (err instanceof Error && err.name === 'AbortError') {
+        setOtpError('सर्व्हर प्रतिसाद देत नाही. हे सर्व्हर नेटवर्क समस्या असू शकते. कृपया थोड्या वेळाने पुन्हा प्रयत्न करा.')
+      } else {
+        setOtpError('सर्व्हरशी संपर्क होत नाही. कृपया इंटरनेट कनेक्शन तपासा आणि पुन्हा प्रयत्न करा.')
+      }
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  const handleVerifyOtp = async () => {
+    if (!/^\d{6}$/.test(otpInput)) {
+      setOtpError('कृपया 6 अंकी OTP प्रविष्ट करा')
+      return
+    }
+    setOtpLoading(true)
+    setOtpError('')
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setOtpError('तुमचे इंटरनेट कनेक्शन बंद आहे. कृपया इंटरनेट सुरू करून पुन्हा प्रयत्न करा.')
+      setOtpLoading(false)
+      return
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 15_000)
+
+    try {
+      const res = await fetch('/api/disability/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile: formData.mobileNumber, otp: otpInput }),
+        signal: controller.signal,
+      })
+      clearTimeout(timer)
+      const data = await res.json()
+      if (data.success) {
+        onMobileVerified(true)
+        setOtpSuccess('मोबाईल क्रमांक पडताळला ✓')
+        setOtpError('')
+      } else {
+        setOtpError(data.message || 'OTP चुकीचा आहे. कृपया पुन्हा प्रयत्न करा.')
+      }
+    } catch (err) {
+      clearTimeout(timer)
+      if (err instanceof Error && err.name === 'AbortError') {
+        setOtpError('सर्व्हर प्रतिसाद देत नाही. हे सर्व्हर नेटवर्क समस्या असू शकते. कृपया थोड्या वेळाने पुन्हा प्रयत्न करा.')
+      } else {
+        setOtpError('सर्व्हरशी संपर्क होत नाही. कृपया इंटरनेट कनेक्शन तपासा आणि पुन्हा प्रयत्न करा.')
+      }
+    } finally {
+      setOtpLoading(false)
+    }
   }
 
   return (
@@ -125,15 +246,74 @@ export default function AddressContactSection({
                 <span className="input-group-text"><i className="bi bi-phone"></i> +91</span>
                 <input
                   type="tel"
-                  className={`form-control ${errors.mobileNumber ? 'is-invalid' : ''}`}
+                  className={`form-control ${errors.mobileNumber ? 'is-invalid' : mobileVerified ? 'is-valid' : ''}`}
                   value={formData.mobileNumber}
                   onChange={handleInputChange('mobileNumber')}
                   placeholder="10 अंकी मोबाईल क्रमांक"
                   maxLength={10}
                   inputMode="numeric"
+                  disabled={mobileVerified}
                 />
+                {mobileVerified && (
+                  <span className="input-group-text text-success">
+                    <i className="bi bi-check-circle-fill"></i>
+                  </span>
+                )}
               </div>
               {errors.mobileNumber && <div className="invalid-feedback d-block">{errors.mobileNumber}</div>}
+              {!mobileVerified && errors.mobileVerified && (
+                <div className="text-danger small mt-1">{errors.mobileVerified}</div>
+              )}
+
+              {/* Send OTP button */}
+              {!mobileVerified && (
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm mt-2 w-100"
+                  onClick={handleSendOtp}
+                  disabled={otpLoading || resendCooldown > 0 || formData.mobileNumber.length !== 10}
+                >
+                  {otpLoading && !otpSent ? <span className="spinner-border spinner-border-sm me-1" /> : null}
+                  {otpSent
+                    ? resendCooldown > 0
+                      ? `पुन्हा पाठवा (${resendCooldown}s)`
+                      : 'पुन्हा OTP पाठवा'
+                    : 'OTP पाठवा'}
+                </button>
+              )}
+
+              {/* OTP input row — appears after send */}
+              {otpSent && !mobileVerified && (
+                <div className="mt-2">
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      className={`form-control ${otpError ? 'is-invalid' : ''}`}
+                      value={otpInput}
+                      onChange={e => { setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError('') }}
+                      placeholder="6 अंकी OTP प्रविष्ट करा"
+                      maxLength={6}
+                      inputMode="numeric"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-success"
+                      onClick={handleVerifyOtp}
+                      disabled={otpLoading || otpInput.length !== 6}
+                    >
+                      {otpLoading ? <span className="spinner-border spinner-border-sm me-1" /> : null}
+                      OTP पडताळा
+                    </button>
+                  </div>
+                  {otpError && <div className="text-danger small mt-1">{otpError}</div>}
+                  {otpSuccess && <div className="text-success small mt-1">{otpSuccess}</div>}
+                </div>
+              )}
+              {mobileVerified && (
+                <div className="text-success small mt-1">
+                  <i className="bi bi-check-circle-fill me-1"></i>मोबाईल क्रमांक पडताळला
+                </div>
+              )}
             </div>
             <div className="col-md-6">
               <label className="form-label">7. पर्यायी दूरध्वनी क्रमांक</label>

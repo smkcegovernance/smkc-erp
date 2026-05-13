@@ -308,7 +308,7 @@ body {
 }
 
 .erp-popup {
-  width: min(560px, 100%);
+  width: min(640px, 100%);
   background: var(--surface);
   border-radius: 24px;
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
@@ -381,18 +381,20 @@ body {
 
 .erp-popup-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.75rem;
   padding: 0 1.6rem 1.6rem;
 }
 
 .erp-popup-action {
-  min-width: 132px;
+  min-width: 120px;
   height: 42px;
   border: 0;
   border-radius: 12px;
   font-size: 0.9rem;
   font-weight: 700;
+  white-space: nowrap;
   transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
 }
 
@@ -599,6 +601,148 @@ body {
   background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-secondary) 55%, transparent 100%);
 }
 
+/* ── Language toggle ── */
+.lang-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+}
+
+.lang-toggle-btn {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.4;
+  border: 1.5px solid var(--color-border, #d1d5db);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-muted, #6b7280);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.lang-toggle-btn:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.lang-toggle-btn.active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #fff;
+}
+
+/* ── Admin Settings Menu ── */
+.admin-settings-menu {
+  position: relative;
+}
+
+.admin-settings-trigger {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1.5px solid rgba(21, 101, 192, 0.25);
+  background: rgba(21, 101, 192, 0.06);
+  color: #1565C0;
+  font-size: 1rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.admin-settings-trigger:hover,
+.admin-settings-trigger.active {
+  background: #1565C0;
+  border-color: #1565C0;
+  color: #fff;
+}
+
+.admin-settings-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  background: #fff;
+  border: 1px solid #e0e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(21, 101, 192, 0.12), 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 200;
+  overflow: hidden;
+}
+
+.admin-settings-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  background: #1565C0;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.admin-settings-sections {
+  padding: 0.4rem 0;
+}
+
+.admin-settings-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  text-decoration: none;
+  color: #18324a;
+  transition: background 0.13s;
+}
+
+.admin-settings-item:hover {
+  background: rgba(21, 101, 192, 0.06);
+}
+
+.admin-settings-item-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(21, 101, 192, 0.1);
+  color: #1565C0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.admin-settings-item-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.admin-settings-item-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #18324a;
+}
+
+.admin-settings-item-desc {
+  font-size: 0.73rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.admin-settings-item-arrow {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
 /* Brand area */
 .erp-brand {
   display: flex;
@@ -647,7 +791,8 @@ body {
 .profile-card {
   display: flex;
   align-items: center;
-  gap: 0.875rem;
+  gap: 0.5rem;
+  margin-left: auto;
 }
 
 .profile-info {
@@ -669,18 +814,39 @@ body {
 }
 
 .profile-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--brand-primary), var(--brand-cta));
   color: #fff;
-  font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  letter-spacing: 0;
   border: 2px solid rgba(212, 175, 55, 0.4);
+}
+
+/* Shared icon-only button style for header actions */
+.header-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid var(--color-gray-200);
+  background: transparent;
+  color: var(--color-text-body);
+  font-size: 1rem;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  text-decoration: none;
+}
+
+.header-icon-btn:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  background: rgba(192, 57, 43, 0.05);
 }
 
 .profile-card button {

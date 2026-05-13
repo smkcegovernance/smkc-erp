@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 import './globals.css'
 import AuthShell from './components/AuthShell'
+import { LanguageProvider } from './lib/i18n/LanguageContext'
+import { DeptProvider } from './lib/DeptContext'
 
 export const metadata: Metadata = {
   title: 'SMKC ERP',
@@ -20,7 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AuthShell>{children}</AuthShell>
+        <LanguageProvider>
+          <DeptProvider>
+            <AuthShell>{children}</AuthShell>
+          </DeptProvider>
+        </LanguageProvider>
       </body>
     </html>
   )

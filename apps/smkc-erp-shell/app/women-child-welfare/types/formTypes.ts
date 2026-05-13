@@ -173,8 +173,41 @@ export const initialFormData: FormData = {
 export interface ApiResponse {
   success: boolean
   message?: string
+  errorCode?: string
   registrationNumber?: string
-  data?: any
+  data?: unknown
+}
+
+/** Shape returned by VW_WCWC_REGISTRATION_SUMMARY via SP_WCWC_SEARCH_REGISTRATIONS */
+export interface RegistrationSummary {
+  REGISTRATION_ID: number
+  REGISTRATION_NO: string
+  APPLICATION_MODE: string
+  SUBMISSION_CHANNEL: string
+  STATUS: string
+  SURNAME: string
+  FIRST_NAME: string
+  FATHER_NAME: string
+  AADHAAR_NUMBER: string
+  DOB?: string
+  MOBILE_NUMBER: string
+  PINCODE?: string
+  WARD_NUMBER?: string
+  UDID_NUMBER?: string
+  DISABILITY_PERCENTAGE?: number
+  OPERATOR_USER_ID?: number
+  OPERATOR_CODE?: string
+  OPERATOR_NAME?: string
+  PUBLIC_SUBMITTER_NAME?: string
+  PUBLIC_CENTER_NAME?: string
+  CREATED_AT: string
+  UPDATED_AT?: string
+  REVIEWED_AT?: string
+  REVIEWED_BY_OPERATOR_ID?: number
+  STATUS_REMARKS?: string
+  DISABILITY_COUNT?: number
+  DEVICE_COUNT?: number
+  DOCUMENT_COUNT?: number
 }
 
 export const DISABILITY_TYPES = [

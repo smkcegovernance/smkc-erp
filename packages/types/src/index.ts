@@ -158,6 +158,24 @@ export const DEPARTMENTS: Department[] = [
     colorBg: 'rgba(55, 71, 79, 0.08)',
     description: 'Roads, infrastructure & civic works',
   },
+  {
+    key: 'pms',
+    label: 'PMS',
+    route: '/pms',
+    icon: 'bi-wallet2',
+    color: '#1565C0',
+    colorBg: 'rgba(21, 101, 192, 0.08)',
+    description: 'Payroll processing, salary & employee compensation',
+  },
+  {
+    key: 'audit-department',
+    label: 'Audit Department',
+    route: '/audit-department',
+    icon: 'bi-clipboard2-check-fill',
+    color: '#7D5A00',
+    colorBg: 'rgba(125, 90, 0, 0.08)',
+    description: 'Internal audit, proposal review & approval flow',
+  },
 ]
 
 // ── Water Tax Dashboard Types ─────────────────────────────────────────────────

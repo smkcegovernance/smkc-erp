@@ -148,7 +148,10 @@ Copy-Item -Path "deployment-package-src\ecosystem.config.js" -Destination "$depl
 Copy-Item -Path "deployment-package-src\deploy.ps1"          -Destination "$deployFolder\deploy.ps1"          -ErrorAction SilentlyContinue
 Copy-Item -Path "deployment-package-src\web.config"          -Destination "$deployFolder\web.config"          -ErrorAction SilentlyContinue
 
-# Root IIS web.config (written directly so this script is self-contained)
+# Root IIS web.config - route ALL traffic to port 3000 (shell).
+# /depositmanager is proxied internally by Next.js rewrites in smkc-erp-shell.
+# /public/disability-registration is served directly by smkc-erp-shell.
+# No IIS ARR reverse-proxy module required.
 @'
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
@@ -165,14 +168,6 @@ Copy-Item -Path "deployment-package-src\web.config"          -Destination "$depl
         <add name="HTTP_X_FORWARDED_HOST" />
       </allowedServerVariables>
       <rules>
-        <rule name="ProxyToDepositManager" stopProcessing="true">
-          <match url="^depositmanager($|/.*)" />
-          <serverVariables>
-            <set name="HTTP_X_FORWARDED_PROTO" value="https" />
-            <set name="HTTP_X_FORWARDED_HOST" value="{HTTP_HOST}" />
-          </serverVariables>
-          <action type="Rewrite" url="http://localhost:3002/{R:0}" logRewrittenUrl="true" appendQueryString="true" />
-        </rule>
         <rule name="ProxyToErpShell" stopProcessing="true">
           <match url=".*" />
           <serverVariables>
@@ -235,6 +230,8 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3000,
         HOSTNAME: '0.0.0.0',
+        // Allow self-signed cert on https://localhost:5443 (.NET dev API)
+        NODE_TLS_REJECT_UNAUTHORIZED: '0',
       },
       error_file: '../../logs/shell-err.log',
       out_file: '../../logs/shell-out.log',
@@ -264,42 +261,7 @@ module.exports = {
 };
 '@ | Set-Content "$deployFolder\ecosystem.config.js" -Encoding UTF8
 
-# --- web.config (IIS root proxy for shell + deposit-manager) ---
-@'
-<?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-  <system.webServer>
-    <handlers>
-      <clear />
-      <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
-      <add name="StaticFile" path="*" verb="*" modules="ProtocolSupportModule"
-           resourceType="Unspecified" requireAccess="None" />
-    </handlers>
-    <rewrite>
-      <rules>
-        <rule name="ProxyToDepositManager" stopProcessing="true">
-          <match url="^depositmanager(/.*)?$" />
-          <serverVariables>
-            <set name="HTTP_X_FORWARDED_PROTO" value="https" />
-            <set name="HTTP_X_FORWARDED_HOST" value="{HTTP_HOST}" />
-          </serverVariables>
-          <action type="Rewrite" url="http://localhost:3002/{R:0}" logRewrittenUrl="true" appendQueryString="true" />
-        </rule>
-        <rule name="ProxyToErpShell" stopProcessing="true">
-          <match url=".*" />
-          <serverVariables>
-            <set name="HTTP_X_FORWARDED_PROTO" value="https" />
-            <set name="HTTP_X_FORWARDED_HOST" value="{HTTP_HOST}" />
-          </serverVariables>
-          <action type="Rewrite" url="http://localhost:3000/{R:0}" logRewrittenUrl="true" appendQueryString="true" />
-        </rule>
-      </rules>
-    </rewrite>
-    <httpErrors existingResponse="PassThrough" />
-    <directoryBrowse enabled="false" />
-  </system.webServer>
-</configuration>
-'@ | Set-Content "$deployFolder\web.config" -Encoding UTF8
+# This block is intentionally left empty - web.config is already written above.
 
 # --- deploy.ps1 (written directly so this script is fully self-contained) ---
 @'
@@ -340,6 +302,108 @@ if ($missingItems.Count -gt 0) {
     Write-Host ""
     Write-Host "Make sure you copied the full deployment-package folder to this server." -ForegroundColor Yellow
     exit 1
+}
+
+# ── Install-WithProgress ──────────────────────────────────────────────────────
+# Shows real-time progress while npm installs dependencies.
+# Reads package.json to list all packages upfront, then monitors
+# node_modules to track each package folder as it arrives.
+function Install-WithProgress {
+    param(
+        [string]$AppName,
+        [string]$AppPath
+    )
+
+    Push-Location $AppPath
+
+    # Read declared production deps from package.json
+    $pkgRaw  = Get-Content "package.json" -Raw -ErrorAction SilentlyContinue
+    $pkgJson = if ($pkgRaw) { $pkgRaw | ConvertFrom-Json } else { $null }
+    $deps    = if ($pkgJson -and $pkgJson.dependencies) {
+                   $pkgJson.dependencies.PSObject.Properties |
+                   ForEach-Object { [PSCustomObject]@{ Name = $_.Name; Version = $_.Value } }
+               } else { @() }
+    $total   = $deps.Count
+
+    # Show full dependency list upfront
+    Write-Host ""
+    Write-Host ("  [{0}] {1} production packages to install:" -f $AppName, $total) -ForegroundColor Cyan
+    $i = 1
+    foreach ($dep in $deps) {
+        Write-Host ("    {0,3}. {1,-42} {2}" -f $i, $dep.Name, $dep.Version) -ForegroundColor DarkGray
+        $i++
+    }
+    Write-Host ""
+
+    # Remove existing node_modules
+    if (Test-Path "node_modules") {
+        Write-Host "  Removing old node_modules..." -ForegroundColor DarkGray
+        Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
+    }
+
+    # Launch npm install as a background job so we can monitor progress
+    $installPath = (Get-Location).Path
+    $job = Start-Job -ScriptBlock {
+        param($p)
+        Set-Location $p
+        npm install --legacy-peer-deps --omit=dev 2>&1 | Out-Null
+        $LASTEXITCODE
+    } -ArgumentList $installPath
+
+    # Real-time progress: poll node_modules for newly installed package folders
+    $seen    = New-Object 'System.Collections.Generic.HashSet[string]'
+    $lastPkg = ""
+
+    while ($job.State -eq 'Running') {
+        if (Test-Path "node_modules") {
+            # Top-level packages
+            Get-ChildItem "node_modules" -Directory -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -notlike ".*" -and $_.Name -notlike "@*" } |
+                ForEach-Object { if ($seen.Add($_.Name)) { $lastPkg = $_.Name } }
+
+            # Scoped packages (@org/pkg)
+            Get-ChildItem "node_modules" -Directory -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -like "@*" } |
+                ForEach-Object {
+                    $scope = $_.Name
+                    Get-ChildItem $_.FullName -Directory -ErrorAction SilentlyContinue |
+                        ForEach-Object {
+                            $full = "$scope/$($_.Name)"
+                            if ($seen.Add($full)) { $lastPkg = $full }
+                        }
+                }
+        }
+
+        $done      = $seen.Count
+        $remaining = [math]::Max(0, $total - $done)
+        $pct       = if ($total -gt 0) { [math]::Min(99, [math]::Round($done / $total * 100)) } else { 50 }
+        $filled    = [math]::Round($pct / 5)
+        $bar       = ("=" * $filled).PadRight(20)
+
+        if ($lastPkg) {
+            Write-Host ("`r  [{0}/{1}] {2,3}%  [{3}]  Installing: {4,-35}  ({5} remaining)  " -f `
+                $done, $total, $pct, $bar, $lastPkg, $remaining) -NoNewline -ForegroundColor White
+        } else {
+            Write-Host "`r  Waiting for npm to start...                                              " -NoNewline -ForegroundColor DarkGray
+        }
+
+        Start-Sleep -Milliseconds 400
+    }
+
+    Write-Host ""  # end the in-place progress line
+
+    $exitCode = Receive-Job -Job $job
+    Remove-Job  -Job $job -Force
+
+    if ($exitCode -ne 0) {
+        Write-Host ("  ERROR: {0} npm install failed (exit code: {1})" -f $AppName, $exitCode) -ForegroundColor Red
+        Pop-Location
+        return $false
+    }
+
+    Write-Host ("  {0}: {1} packages installed OK" -f $AppName, $seen.Count) -ForegroundColor Green
+    Pop-Location
+    return $true
 }
 
 # -----------------------------------------------
@@ -417,29 +481,11 @@ Write-Host "[4/5] Installing dependencies..." -ForegroundColor Yellow
 npm config set ignore-scripts false
 npm config set engine-strict false
 
-# smkc-erp-shell
-Write-Host "  Installing smkc-erp-shell dependencies..." -ForegroundColor Cyan
-Push-Location "apps\smkc-erp-shell"
-if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue }
-npm install --legacy-peer-deps --omit=dev
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "  ERROR: smkc-erp-shell npm install failed!" -ForegroundColor Red
-    Pop-Location; exit 1
-}
-Pop-Location
-Write-Host "  smkc-erp-shell dependencies OK" -ForegroundColor Green
+if (-not (Install-WithProgress -AppName "smkc-erp-shell" -AppPath "apps\smkc-erp-shell")) { exit 1 }
+if (-not (Install-WithProgress -AppName "deposit-manager"  -AppPath "apps\deposit-manager"))  { exit 1 }
 
-# deposit-manager
-Write-Host "  Installing deposit-manager dependencies..." -ForegroundColor Cyan
-Push-Location "apps\deposit-manager"
-if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue }
-npm install --legacy-peer-deps --omit=dev
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "  ERROR: deposit-manager npm install failed!" -ForegroundColor Red
-    Pop-Location; exit 1
-}
-Pop-Location
-Write-Host "  deposit-manager dependencies OK" -ForegroundColor Green
+Write-Host ""
+Write-Host "  All dependencies installed successfully!" -ForegroundColor Green
 
 # -----------------------------------------------
 # Step 5: Start with PM2

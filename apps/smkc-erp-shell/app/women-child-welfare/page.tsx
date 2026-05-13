@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import Header from './components/Header'
 import ProgressIndicator from './components/ProgressIndicator'
 import PersonalInfoSection from './components/sections/PersonalInfoSection'
@@ -12,6 +13,7 @@ import Footer from './components/Footer'
 import { FormData, initialFormData } from './types/formTypes'
 import { registerDisabledPerson } from './services/api'
 import { getPrintableApplicationUrl, savePrintableApplicationSnapshot } from './utils/printableApplication'
+import { useLanguage } from '@/app/lib/i18n/LanguageContext'
 
 type SectionId = 1 | 2 | 3 | 4
 
@@ -63,12 +65,14 @@ interface PopupState {
 }
 
 export default function Home() {
+  const { T } = useLanguage()
   const [currentSection, setCurrentSection] = useState<SectionId>(1)
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [registrationNumber, setRegistrationNumber] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [popup, setPopup] = useState<PopupState>({ open: false, tone: 'info', title: '', description: '' })
+  const [mobileVerified, setMobileVerified] = useState(false)
 
   const openPrintableApplication = (applicationNumber: string, autoPrint = false) => {
     if (!applicationNumber) {
@@ -302,20 +306,10 @@ export default function Home() {
       if (!formData.applicantSignDate) {
         newErrors.applicantSignDate = 'अर्जदाराची सही दिनांक आवश्यक आहे'
       }
-      if (isBlank(formData.surveyorName)) newErrors.surveyorName = 'सर्वेक्षकाचे नाव आवश्यक आहे'
-      if (isBlank(formData.surveyorDesignation)) newErrors.surveyorDesignation = 'सर्वेक्षकाचा हुद्दा आवश्यक आहे'
-      if (isBlank(formData.surveyorMobile)) {
-        newErrors.surveyorMobile = 'सर्वेक्षकाचा मोबाईल क्रमांक आवश्यक आहे'
-      } else if (!/^\d{10}$/.test(formData.surveyorMobile)) {
-        newErrors.surveyorMobile = 'कृपया वैध 10 अंकी मोबाईल क्रमांक प्रविष्ट करा'
-      }
-      if (!formData.surveyorSignature && isBlank(formData.surveyorSignaturePreview)) {
-        newErrors.surveyorSignature = 'कृपया सर्वेक्षकाची सही अपलोड करा'
-      }
       if (!formData.termsAccepted) {
         newErrors.termsAccepted = 'कृपया अटी व शर्ती मान्य करा'
       }
-      ;['udidDoc', 'aadhaarDoc', 'bankDoc', 'photoDoc', 'applicantSignature', 'surveyorSignature'].forEach((field) => {
+      ;['udidDoc', 'aadhaarDoc', 'bankDoc', 'photoDoc', 'applicantSignature'].forEach((field) => {
         if (errors[field]) {
           newErrors[field] = errors[field]
         }
@@ -355,7 +349,7 @@ export default function Home() {
 
     try {
       const response = await registerDisabledPerson(formData)
-      
+
       if (response.success) {
         const nextRegistrationNumber = response.registrationNumber || ''
         setRegistrationNumber(nextRegistrationNumber)
@@ -367,20 +361,25 @@ export default function Home() {
           description: 'हा अर्ज क्रमांक पुढील ट्रॅकिंगसाठी जतन करून ठेवा. Print / Save PDF वापरून A4 soft copy देखील जतन करता येईल.',
         })
       } else {
+        // safeFetch never throws — network errors arrive here as response.errorCode
+        const isNetworkProblem =
+          response.errorCode === 'SERVER_UNREACHABLE' ||
+          response.errorCode === 'GATEWAY_TIMEOUT'
+
         setPopup({
           open: true,
-          tone: 'error',
-          title: 'अर्ज सबमिट करता आला नाही',
+          tone: isNetworkProblem ? 'warning' : 'error',
+          title: isNetworkProblem ? 'नेटवर्क समस्या' : 'अर्ज सबमिट करता आला नाही',
           description: response.message || 'नोंदणी करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.',
         })
       }
-    } catch (error) {
-      console.error('Registration error:', error)
+    } catch {
+      // Last-resort fallback (should not reach here with safeFetch)
       setPopup({
         open: true,
         tone: 'error',
         title: 'अर्ज सबमिट करता आला नाही',
-        description: error instanceof Error ? error.message : 'नोंदणी करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.',
+        description: 'अनपेक्षित त्रुटी आली. कृपया पुन्हा प्रयत्न करा.',
       })
     } finally {
       setIsSubmitting(false)
@@ -422,12 +421,21 @@ export default function Home() {
       />
       
       <main className="main-content">
+        <nav className="dash-breadcrumb" style={{ padding: '0 1.5rem' }} aria-label="Breadcrumb">
+          <Link href="/" className="dash-breadcrumb-home">
+            <i className="bi bi-house-door-fill" aria-hidden="true" /> {T.nav.home}
+          </Link>
+          <span className="dash-breadcrumb-sep" aria-hidden="true">›</span>
+          <Link href="/women-child-welfare" className="dash-breadcrumb-home">{T.depts['women-child-welfare']?.label ?? 'Women & Child Welfare'}</Link>
+          <span className="dash-breadcrumb-sep" aria-hidden="true">›</span>
+          <span className="dash-breadcrumb-current">दिव्यांग नोंदणी</span>
+        </nav>
         <div className="container">
           <div className="form-shell">
             <section className="form-hero-panel">
               <div>
                 <span className="hero-kicker">Women & Child Welfare</span>
-                <h1 className="hero-title">दिव्यांग नोंदणी प्रक्रिया अधिक स्पष्ट, वेगवान आणि अचूक</h1>
+                <h1 className="hero-title">दिव्यांग नोंदणी प्रक्रिया</h1>
                 <p className="hero-copy">
                   फॉर्म आता चार स्पष्ट टप्प्यांत विभागलेला आहे. आवश्यक तपशील, पडताळणी आणि अंतिम घोषणेपर्यंत प्रत्येक भागात मार्गदर्शक सूचना दिसतील.
                 </p>
@@ -443,11 +451,7 @@ export default function Home() {
                   <strong>{activeSection.kicker}</strong>
                   <span className="metric-subtext">{activeSection.title}</span>
                 </div>
-                <div className="hero-metric-card accent-amber">
-                  <span className="metric-label">नोंद</span>
-                  <strong>{formData.disabilityTypes.length || 0}</strong>
-                  <span className="metric-subtext">दिव्यांगत्व प्रकार निवडले</span>
-                </div>
+
               </div>
             </section>
 
@@ -495,6 +499,8 @@ export default function Home() {
                       errors={errors}
                       onNext={handleNext}
                       onPrev={handlePrev}
+                      mobileVerified={mobileVerified}
+                      onMobileVerified={setMobileVerified}
                     />
                   )}
 
@@ -523,31 +529,6 @@ export default function Home() {
               </div>
 
               <aside className="form-side-column">
-                <div className="insight-card">
-                  <div className="insight-card-header">
-                    <span>Quick summary</span>
-                    <i className="bi bi-journal-check"></i>
-                  </div>
-                  <ul className="summary-list">
-                    <li>
-                      <span>अर्जदार</span>
-                      <strong>{[formData.firstName, formData.surname].filter(Boolean).join(' ') || 'अद्याप नाही'}</strong>
-                    </li>
-                    <li>
-                      <span>मोबाईल</span>
-                      <strong>{formData.mobileNumber || 'अद्याप नाही'}</strong>
-                    </li>
-                    <li>
-                      <span>दिव्यांगत्व</span>
-                      <strong>{selectedDisabilitySummary || 'निवडलेले नाही'}</strong>
-                    </li>
-                    <li>
-                      <span>प्रमाणपत्र</span>
-                      <strong>{formData.hasCertificate || 'निवडलेले नाही'}</strong>
-                    </li>
-                  </ul>
-                </div>
-
                 <div className="insight-card muted-card">
                   <div className="insight-card-header">
                     <span>Submission checklist</span>

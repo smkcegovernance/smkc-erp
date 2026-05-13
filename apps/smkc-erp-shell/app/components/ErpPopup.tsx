@@ -13,7 +13,7 @@ interface ErpPopupAction {
 }
 
 interface ErpPopupProps {
-  open: boolean
+  open?: boolean
   tone?: PopupTone
   title: string
   description?: string
@@ -32,7 +32,7 @@ const toneMeta: Record<PopupTone, { icon: string; badge: string }> = {
 }
 
 export default function ErpPopup({
-  open,
+  open = true,
   tone = 'info',
   title,
   description,

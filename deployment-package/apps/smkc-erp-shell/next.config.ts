@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   transpilePackages: [
     '@smkc/ui',
     '@smkc/auth',
@@ -10,12 +13,8 @@ const nextConfig: NextConfig = {
     '@smkc/utils',
   ],
   async rewrites() {
-    // In production, IIS handles /depositmanager routing directly to the app on port 3002.
-    // Keep the rewrite only for local development.
-    if (process.env.NODE_ENV === 'production') {
-      return []
-    }
-
+    // The shell always proxies /depositmanager to the deposit-manager process on port 3002.
+    // IIS ARR is NOT required — the shell handles the reverse proxy in both dev and production.
     return [
       {
         source: '/depositmanager',

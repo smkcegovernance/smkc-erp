@@ -37,6 +37,108 @@ if ($missingItems.Count -gt 0) {
     exit 1
 }
 
+# â”€â”€ Install-WithProgress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Shows real-time progress while npm installs dependencies.
+# Reads package.json to list all packages upfront, then monitors
+# node_modules to track each package folder as it arrives.
+function Install-WithProgress {
+    param(
+        [string]$AppName,
+        [string]$AppPath
+    )
+
+    Push-Location $AppPath
+
+    # Read declared production deps from package.json
+    $pkgRaw  = Get-Content "package.json" -Raw -ErrorAction SilentlyContinue
+    $pkgJson = if ($pkgRaw) { $pkgRaw | ConvertFrom-Json } else { $null }
+    $deps    = if ($pkgJson -and $pkgJson.dependencies) {
+                   $pkgJson.dependencies.PSObject.Properties |
+                   ForEach-Object { [PSCustomObject]@{ Name = $_.Name; Version = $_.Value } }
+               } else { @() }
+    $total   = $deps.Count
+
+    # Show full dependency list upfront
+    Write-Host ""
+    Write-Host ("  [{0}] {1} production packages to install:" -f $AppName, $total) -ForegroundColor Cyan
+    $i = 1
+    foreach ($dep in $deps) {
+        Write-Host ("    {0,3}. {1,-42} {2}" -f $i, $dep.Name, $dep.Version) -ForegroundColor DarkGray
+        $i++
+    }
+    Write-Host ""
+
+    # Remove existing node_modules
+    if (Test-Path "node_modules") {
+        Write-Host "  Removing old node_modules..." -ForegroundColor DarkGray
+        Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
+    }
+
+    # Launch npm install as a background job so we can monitor progress
+    $installPath = (Get-Location).Path
+    $job = Start-Job -ScriptBlock {
+        param($p)
+        Set-Location $p
+        npm install --legacy-peer-deps --omit=dev 2>&1 | Out-Null
+        $LASTEXITCODE
+    } -ArgumentList $installPath
+
+    # Real-time progress: poll node_modules for newly installed package folders
+    $seen    = New-Object 'System.Collections.Generic.HashSet[string]'
+    $lastPkg = ""
+
+    while ($job.State -eq 'Running') {
+        if (Test-Path "node_modules") {
+            # Top-level packages
+            Get-ChildItem "node_modules" -Directory -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -notlike ".*" -and $_.Name -notlike "@*" } |
+                ForEach-Object { if ($seen.Add($_.Name)) { $lastPkg = $_.Name } }
+
+            # Scoped packages (@org/pkg)
+            Get-ChildItem "node_modules" -Directory -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -like "@*" } |
+                ForEach-Object {
+                    $scope = $_.Name
+                    Get-ChildItem $_.FullName -Directory -ErrorAction SilentlyContinue |
+                        ForEach-Object {
+                            $full = "$scope/$($_.Name)"
+                            if ($seen.Add($full)) { $lastPkg = $full }
+                        }
+                }
+        }
+
+        $done      = $seen.Count
+        $remaining = [math]::Max(0, $total - $done)
+        $pct       = if ($total -gt 0) { [math]::Min(99, [math]::Round($done / $total * 100)) } else { 50 }
+        $filled    = [math]::Round($pct / 5)
+        $bar       = ("=" * $filled).PadRight(20)
+
+        if ($lastPkg) {
+            Write-Host ("`r  [{0}/{1}] {2,3}%  [{3}]  Installing: {4,-35}  ({5} remaining)  " -f `
+                $done, $total, $pct, $bar, $lastPkg, $remaining) -NoNewline -ForegroundColor White
+        } else {
+            Write-Host "`r  Waiting for npm to start...                                              " -NoNewline -ForegroundColor DarkGray
+        }
+
+        Start-Sleep -Milliseconds 400
+    }
+
+    Write-Host ""  # end the in-place progress line
+
+    $exitCode = Receive-Job -Job $job
+    Remove-Job  -Job $job -Force
+
+    if ($exitCode -ne 0) {
+        Write-Host ("  ERROR: {0} npm install failed (exit code: {1})" -f $AppName, $exitCode) -ForegroundColor Red
+        Pop-Location
+        return $false
+    }
+
+    Write-Host ("  {0}: {1} packages installed OK" -f $AppName, $seen.Count) -ForegroundColor Green
+    Pop-Location
+    return $true
+}
+
 # -----------------------------------------------
 # Step 1: Check prerequisites
 # -----------------------------------------------
@@ -112,29 +214,11 @@ Write-Host "[4/5] Installing dependencies..." -ForegroundColor Yellow
 npm config set ignore-scripts false
 npm config set engine-strict false
 
-# smkc-erp-shell
-Write-Host "  Installing smkc-erp-shell dependencies..." -ForegroundColor Cyan
-Push-Location "apps\smkc-erp-shell"
-if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue }
-npm install --legacy-peer-deps --omit=dev
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "  ERROR: smkc-erp-shell npm install failed!" -ForegroundColor Red
-    Pop-Location; exit 1
-}
-Pop-Location
-Write-Host "  smkc-erp-shell dependencies OK" -ForegroundColor Green
+if (-not (Install-WithProgress -AppName "smkc-erp-shell" -AppPath "apps\smkc-erp-shell")) { exit 1 }
+if (-not (Install-WithProgress -AppName "deposit-manager"  -AppPath "apps\deposit-manager"))  { exit 1 }
 
-# deposit-manager
-Write-Host "  Installing deposit-manager dependencies..." -ForegroundColor Cyan
-Push-Location "apps\deposit-manager"
-if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue }
-npm install --legacy-peer-deps --omit=dev
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "  ERROR: deposit-manager npm install failed!" -ForegroundColor Red
-    Pop-Location; exit 1
-}
-Pop-Location
-Write-Host "  deposit-manager dependencies OK" -ForegroundColor Green
+Write-Host ""
+Write-Host "  All dependencies installed successfully!" -ForegroundColor Green
 
 # -----------------------------------------------
 # Step 5: Start with PM2

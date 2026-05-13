@@ -15,6 +15,8 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3000,
         HOSTNAME: '0.0.0.0',
+        // Allow self-signed cert on https://localhost:5443 (.NET dev API)
+        NODE_TLS_REJECT_UNAUTHORIZED: '0',
       },
       error_file: '../../logs/shell-err.log',
       out_file: '../../logs/shell-out.log',
