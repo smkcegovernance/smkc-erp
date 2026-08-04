@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Header from './components/Header'
 import ProgressIndicator from './components/ProgressIndicator'
@@ -57,11 +57,41 @@ function isBlank(value: string) {
 
 type PopupTone = 'success' | 'error' | 'info' | 'warning' | 'confirm'
 
+const DISABILITY_DRAFT_STORAGE_KEY = 'smkc_wcwc_disability_registration_draft_v1'
+
+interface SavedDisabilityDraft {
+  currentSection: SectionId
+  mobileVerified: boolean
+  formData: FormData
+}
+
 interface PopupState {
   open: boolean
   tone: PopupTone
   title: string
   description: string
+}
+
+function clampSection(section: number): SectionId {
+  if (section <= 1) return 1
+  if (section === 2) return 2
+  if (section === 3) return 3
+  return 4
+}
+
+function getPersistableFormData(formData: FormData): FormData {
+  return {
+    ...formData,
+    photo: null,
+    udidDoc: null,
+    aadhaarDoc: null,
+    rationCardDoc: null,
+    bankDoc: null,
+    incomeCertificateDoc: null,
+    photoDoc: null,
+    applicantSignature: null,
+    surveyorSignature: null,
+  }
 }
 
 export default function Home() {
@@ -73,13 +103,50 @@ export default function Home() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [popup, setPopup] = useState<PopupState>({ open: false, tone: 'info', title: '', description: '' })
   const [mobileVerified, setMobileVerified] = useState(false)
+  const [draftHydrated, setDraftHydrated] = useState(false)
 
-  const openPrintableApplication = (applicationNumber: string, autoPrint = false) => {
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    try {
+      const rawDraft = window.sessionStorage.getItem(DISABILITY_DRAFT_STORAGE_KEY)
+      if (rawDraft) {
+        const parsed = JSON.parse(rawDraft) as Partial<SavedDisabilityDraft>
+        if (parsed.formData) {
+          setFormData((prev) => ({ ...prev, ...parsed.formData }))
+        }
+        if (typeof parsed.currentSection === 'number') {
+          setCurrentSection(clampSection(parsed.currentSection))
+        }
+        if (typeof parsed.mobileVerified === 'boolean') {
+          setMobileVerified(parsed.mobileVerified)
+        }
+      }
+    } catch {
+      window.sessionStorage.removeItem(DISABILITY_DRAFT_STORAGE_KEY)
+    } finally {
+      setDraftHydrated(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!draftHydrated || typeof window === 'undefined') return
+
+    const draft: SavedDisabilityDraft = {
+      currentSection,
+      mobileVerified,
+      formData: getPersistableFormData(formData),
+    }
+
+    window.sessionStorage.setItem(DISABILITY_DRAFT_STORAGE_KEY, JSON.stringify(draft))
+  }, [currentSection, draftHydrated, formData, mobileVerified])
+
+  const openPrintableApplication = (applicationNumber: string, mode: 'print' | 'download' = 'print') => {
     if (!applicationNumber) {
       return
     }
 
-    window.open(getPrintableApplicationUrl(applicationNumber, autoPrint), '_blank', 'noopener,noreferrer')
+    window.open(getPrintableApplicationUrl(applicationNumber, mode), '_blank', 'noopener,noreferrer')
   }
 
   const updateFormData = <K extends keyof FormData>(field: K, value: FormData[K]) => {
@@ -180,6 +247,12 @@ export default function Home() {
       } else if (!/^\d{12}$/.test(formData.aadhaarNumber)) {
         newErrors.aadhaarNumber = 'कृपया वैध 12 अंकी आधार क्रमांक प्रविष्ट करा'
       }
+      if (isBlank(formData.rationCardNumber)) {
+        newErrors.rationCardNumber = 'कृपया रेशन कार्ड क्रमांक प्रविष्ट करा'
+      }
+      if (isBlank(formData.rationCardColor)) {
+        newErrors.rationCardColor = 'कृपया रेशन कार्ड रंग निवडा'
+      }
       if (!formData.dob) newErrors.dob = 'कृपया जन्मतारीख निवडा'
       if (formData.dob && new Date(formData.dob) > new Date()) {
         newErrors.dob = 'जन्मतारीख आजच्या तारखेपेक्षा पुढील असू शकत नाही'
@@ -195,6 +268,23 @@ export default function Home() {
 
     if (section === 2) {
       if (isBlank(formData.fullAddress)) newErrors.fullAddress = 'कृपया पत्ता प्रविष्ट करा'
+      if (isBlank(formData.livesInCorporationArea)) newErrors.livesInCorporationArea = 'कृपया नागरिक महानगरपालिका क्षेत्रात राहतो का ते निवडा'
+      if (isBlank(formData.wardNumber)) {
+        newErrors.wardNumber = 'कृपया वॉर्ड क्रमांक प्रविष्ट करा'
+      } else {
+        const wardNumber = Number(formData.wardNumber)
+        if (!Number.isInteger(wardNumber) || wardNumber < 1 || wardNumber > 20) {
+          newErrors.wardNumber = 'वॉर्ड क्रमांक 1 ते 20 दरम्यान असावा'
+        }
+      }
+      if (isBlank(formData.prabhagSamiti)) {
+        newErrors.prabhagSamiti = 'कृपया प्रभाग समिति क्रमांक प्रविष्ट करा'
+      } else {
+        const prabhagSamiti = Number(formData.prabhagSamiti)
+        if (!Number.isInteger(prabhagSamiti) || prabhagSamiti < 1 || prabhagSamiti > 4) {
+          newErrors.prabhagSamiti = 'प्रभाग समिति क्रमांक 1 ते 4 दरम्यान असावा'
+        }
+      }
       if (isBlank(formData.mobileNumber)) {
         newErrors.mobileNumber = 'कृपया मोबाईल क्रमांक प्रविष्ट करा'
       } else if (!/^\d{10}$/.test(formData.mobileNumber)) {
@@ -297,8 +387,10 @@ export default function Home() {
         newErrors.documentsSubmitted = 'कागदपत्रे सादर केली आहेत का ते निवडा'
       }
       if (!formData.udidDoc) newErrors.udidDoc = 'कृपया UDID / दिव्यांग प्रमाणपत्र अपलोड करा'
-      if (!formData.aadhaarDoc) newErrors.aadhaarDoc = 'कृपया आधारकार्ड / रेशनकार्ड अपलोड करा'
+      if (!formData.aadhaarDoc) newErrors.aadhaarDoc = 'कृपया आधारकार्ड अपलोड करा'
+      if (!formData.rationCardDoc) newErrors.rationCardDoc = 'कृपया रेशनकार्ड अपलोड करा'
       if (!formData.bankDoc) newErrors.bankDoc = 'कृपया बँक खाते झेरॉक्स अपलोड करा'
+      if (!formData.incomeCertificateDoc) newErrors.incomeCertificateDoc = 'कृपया उत्पन्न दाखला / वार्षिक आय प्रमाणपत्र अपलोड करा'
       if (!formData.photoDoc) newErrors.photoDoc = 'कृपया फोटो अपलोड करा'
       if (!formData.applicantSignature && isBlank(formData.applicantSignaturePreview)) {
         newErrors.applicantSignature = 'कृपया अर्जदाराची सही अपलोड करा'
@@ -309,7 +401,7 @@ export default function Home() {
       if (!formData.termsAccepted) {
         newErrors.termsAccepted = 'कृपया अटी व शर्ती मान्य करा'
       }
-      ;['udidDoc', 'aadhaarDoc', 'bankDoc', 'photoDoc', 'applicantSignature'].forEach((field) => {
+      ;['udidDoc', 'aadhaarDoc', 'rationCardDoc', 'bankDoc', 'incomeCertificateDoc', 'photoDoc', 'applicantSignature'].forEach((field) => {
         if (errors[field]) {
           newErrors[field] = errors[field]
         }
@@ -358,9 +450,31 @@ export default function Home() {
           open: true,
           tone: 'success',
           title: 'अर्ज यशस्वीरित्या सबमिट झाला आहे',
-          description: 'हा अर्ज क्रमांक पुढील ट्रॅकिंगसाठी जतन करून ठेवा. Print / Save PDF वापरून A4 soft copy देखील जतन करता येईल.',
+          description: 'हा अर्ज क्रमांक पुढील ट्रॅकिंगसाठी जतन करून ठेवा. PDF डाउनलोड किंवा प्रिंट कॉपीही घेता येईल.',
         })
       } else {
+        const isDuplicateNumber = response.errorCode === 'DUPLICATE_REGISTRATION_NUMBER'
+
+        if (isDuplicateNumber) {
+          setPopup({
+            open: true,
+            tone: 'warning',
+            title: 'डुप्लिकेट नोंदणी आढळली',
+            description: response.message || 'या क्रमांकासह अर्ज आधीच नोंदणीकृत आहे. कृपया वेगळा क्रमांक वापरा.',
+          })
+
+          if ((response.message || '').toLowerCase().indexOf('mobile') >= 0 || (response.message || '').indexOf('मोबाईल') >= 0) {
+            setErrors((prev) => ({ ...prev, mobileNumber: response.message || 'हा मोबाईल क्रमांक आधीच नोंदणीकृत आहे' }))
+            setCurrentSection(2)
+          } else {
+            setErrors((prev) => ({ ...prev, aadhaarNumber: response.message || 'हा आधार क्रमांक आधीच नोंदणीकृत आहे' }))
+            setCurrentSection(1)
+          }
+
+          scrollToTop()
+          return
+        }
+
         // safeFetch never throws — network errors arrive here as response.errorCode
         const isNetworkProblem =
           response.errorCode === 'SERVER_UNREACHABLE' ||
@@ -392,6 +506,11 @@ export default function Home() {
     setRegistrationNumber('')
     setErrors({})
     setPopup({ open: false, tone: 'info', title: '', description: '' })
+    setMobileVerified(false)
+
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem(DISABILITY_DRAFT_STORAGE_KEY)
+    }
   }
 
   const handlePopupClose = () => {
@@ -411,8 +530,8 @@ export default function Home() {
   return (
     <>
       <Header />
-      <ProgressIndicator 
-        currentStep={currentSection} 
+      <ProgressIndicator
+        currentStep={currentSection}
         onStepClick={(step) => {
           if (step < currentSection) {
             setCurrentSection(step as SectionId)
@@ -556,8 +675,9 @@ export default function Home() {
         actions={
           popup.tone === 'success'
             ? [
-                { label: 'Print / Save PDF', onClick: () => openPrintableApplication(registrationNumber, true), variant: 'primary' },
-                { label: 'Open Preview', onClick: () => openPrintableApplication(registrationNumber), variant: 'secondary' },
+                { label: 'Download PDF', onClick: () => openPrintableApplication(registrationNumber, 'download'), variant: 'primary' },
+                { label: 'Print / Save PDF', onClick: () => openPrintableApplication(registrationNumber, 'print'), variant: 'secondary' },
+                { label: 'Open Preview', onClick: () => openPrintableApplication(registrationNumber, 'print'), variant: 'secondary' },
                 { label: 'Close', onClick: handlePopupClose, variant: 'secondary' },
                 { label: 'New Application', onClick: handleNewRegistration, variant: 'secondary' },
               ]

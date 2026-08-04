@@ -270,8 +270,10 @@ export default function FinalBudgetEntryPage() {
           const detailJson = await detailRes.json()
           if (detailJson.success && detailJson.data) {
             const e = detailJson.data as PrimaryEntry
-            const remainingBefore = e.remainingBudgetAmount + e.proposedWorkAmount
-            const remainingAfter = remainingBefore - finalNum
+            // remainingBefore for final = remaining AFTER primary = BEFORE final entry
+            const remainingBefore = e.remainingBudgetAmount
+            // remainingAfter for final = totalBudget - finalAmount (primary freed, final committed)
+            const remainingAfter = e.remainingBudgetAmount + e.proposedWorkAmount - finalNum
             setPrintData({
               type: 'final',
               bookEntryNo: e.bookEntryNo,

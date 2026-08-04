@@ -77,9 +77,20 @@ export async function loginWithServer(userId: string, password: string): Promise
     })
 
     const json = await res.json() as {
-      success: boolean
+      success?: boolean
+      Success?: boolean
       message?: string
+      Message?: string
       data?: {
+        userId: string
+        name: string
+        status: string
+        validFrom?: string
+        validTo?: string
+        roleId: number
+        role: string
+      } | null
+      Data?: {
         userId: string
         name: string
         status: string
@@ -90,11 +101,15 @@ export async function loginWithServer(userId: string, password: string): Promise
       } | null
     }
 
-    if (!json.success || !json.data) {
-      return { success: false, message: json.message ?? 'Login failed', session: null }
+    const success = json.success ?? json.Success ?? false
+    const message = json.message ?? json.Message ?? 'Login failed'
+    const data = json.data ?? json.Data ?? null
+
+    if (!success || !data) {
+      return { success: false, message, session: null }
     }
 
-    const d = json.data
+    const d = data
     const role = (d.role ?? 'operator') as UserRole
 
     const user: User = {
@@ -120,13 +135,13 @@ export async function loginWithServer(userId: string, password: string): Promise
 
 export function saveSession(session: Session): void {
   if (typeof window !== 'undefined') {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session))
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
   }
 }
 
 export function getSession(): Session | null {
   if (typeof window === 'undefined') return null
-  const raw = sessionStorage.getItem(SESSION_KEY)
+  const raw = localStorage.getItem(SESSION_KEY)
   if (!raw) return null
   try {
     return JSON.parse(raw) as Session
@@ -137,7 +152,7 @@ export function getSession(): Session | null {
 
 export function clearSession(): void {
   if (typeof window !== 'undefined') {
-    sessionStorage.removeItem(SESSION_KEY)
+    localStorage.removeItem(SESSION_KEY)
   }
 }
 

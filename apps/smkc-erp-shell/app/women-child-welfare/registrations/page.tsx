@@ -15,28 +15,46 @@ import { useLanguage } from '@/app/lib/i18n/LanguageContext'
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
+const PAGE_SIZE = 20
+
+interface ColDef { label: string; sortKey: string | null; align?: string }
+const COLUMNS: ColDef[] = [
+  { label: 'नोंदणी क्र.', sortKey: 'REGISTRATION_NO' },
+  { label: 'नाव', sortKey: 'NAME' },
+  { label: 'मोबाइल', sortKey: null },
+  { label: 'अपंगत्व %', sortKey: 'DISABILITY_PERCENTAGE', align: 'center' },
+  { label: 'मोड', sortKey: null },
+  { label: 'सादर दिनांक', sortKey: 'CREATED_AT' },
+  { label: 'स्थिती', sortKey: 'STATUS' },
+  { label: 'कारवाई', sortKey: null },
+]
+
 const STATUS_TABS = [
   { key: 'ALL',          label: 'सर्व' },
   { key: 'SUBMITTED',    label: 'नवीन' },
   { key: 'UNDER_REVIEW', label: 'आढाव्याधीन' },
   { key: 'APPROVED',     label: 'मंजूर' },
   { key: 'REJECTED',     label: 'नाकारले' },
+  { key: 'DUPLICATE',    label: 'डुप्लिकेट' },
 ]
 
 const STATUS_META: Record<string, { label: string; bg: string; color: string }> = {
-  SUBMITTED:    { label: 'नवीन',          bg: '#0f5fa8',  color: '#fff' },
-  UNDER_REVIEW: { label: 'आढाव्याधीन',   bg: '#d97706',  color: '#fff' },
-  APPROVED:     { label: 'मंजूर',         bg: '#117a5d',  color: '#fff' },
-  REJECTED:     { label: 'नाकारले',       bg: '#c63b31',  color: '#fff' },
-  CANCELLED:    { label: 'रद्द',          bg: '#6c757d',  color: '#fff' },
-  DRAFT:        { label: 'ड्राफ्ट',      bg: '#6c757d',  color: '#fff' },
+  SUBMITTED:    { label: 'नवीन',            bg: '#0f5fa8',  color: '#fff' },
+  UNDER_REVIEW: { label: 'आढाव्याधीन',     bg: '#d97706',  color: '#fff' },
+  APPROVED:     { label: 'मंजूर',           bg: '#117a5d',  color: '#fff' },
+  REJECTED:     { label: 'नाकारले',         bg: '#c63b31',  color: '#fff' },
+  DUPLICATE:    { label: 'डुप्लिकेट',        bg: '#7c3aed',  color: '#fff' },
+  CANCELLED:    { label: 'रद्द',            bg: '#6c757d',  color: '#fff' },
+  DRAFT:        { label: 'ड्राफ्ट',        bg: '#6c757d',  color: '#fff' },
 }
 
 const DOC_LABELS: Record<string, string> = {
   PHOTO_DOC:            'फोटो',
   AADHAAR_DOC:          'आधार कार्ड',
+  RATION_CARD_DOC:      'रेशन कार्ड',
   UDID_DOC:             'UDID दस्तऐवज',
   BANK_DOC:             'बँक दस्तऐवज',
+  INCOME_CERTIFICATE_DOC: 'उत्पन्न दाखला',
   APPLICANT_SIGNATURE:  'अर्जदाराची सही',
   SURVEYOR_SIGNATURE:   'सर्वेक्षकाची सही',
 }
@@ -199,6 +217,126 @@ function RejectModal({ target, onCancel, onConfirm, submitting }: RejectModalPro
   )
 }
 
+// ─── Duplicate Modal ─────────────────────────────────────────────────────────
+
+interface DuplicateModalProps {
+  target: RegistrationSummary
+  onCancel: () => void
+  onConfirm: (reason: string) => void
+  submitting: boolean
+}
+
+function DuplicateModal({ target, onCancel, onConfirm, submitting }: DuplicateModalProps) {
+  const [reason, setReason] = useState('')
+  const [step, setStep] = useState<1 | 2>(1)
+
+  function handleNext() { if (reason.trim().length >= 5) setStep(2) }
+  function handleBack() { setStep(1) }
+
+  return (
+    <div style={OVERLAY_STYLE} onClick={step === 1 ? onCancel : undefined}>
+      <div style={{ ...MODAL_STYLE, maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+        <div style={MODAL_HEADER_STYLE}>
+          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#5b21b6' }}>
+            <i className={step === 1 ? 'bi bi-files me-2' : 'bi bi-exclamation-triangle-fill me-2'} />
+            {step === 1 ? 'डुप्लिकेट म्हणून चिन्हांकित करा' : 'खात्री करा'}
+          </h4>
+          {step === 1 && (
+            <button type="button" style={CLOSE_BTN_STYLE} onClick={onCancel} disabled={submitting}
+              aria-label="बंद करा">
+              <i className="bi bi-x-lg" />
+            </button>
+          )}
+        </div>
+
+        {step === 1 ? (
+          <>
+            <div style={{ padding: '18px 22px 0' }}>
+              <p style={{ margin: '0 0 6px', fontSize: '0.88rem', color: '#5e7388' }}>
+                नोंदणी क्र.: <strong style={{ color: '#18324a' }}>{target.REGISTRATION_NO}</strong>
+                {' — '}{fullName(target)}
+              </p>
+              <p style={{ margin: '0 0 12px', fontSize: '0.82rem', color: '#7c3aed', background: '#f5f3ff', padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd6fe' }}>
+                <i className="bi bi-info-circle me-1" />डुप्लिकेट म्हणून चिन्हांकित केलेले अर्ज मंजूर/नाकारले/सर्व या अहवालात दिसणार नाहीत.
+              </p>
+              <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.9rem', color: '#18324a' }}>
+                डुप्लिकेट कारण <span style={{ color: '#5b21b6' }}>*</span>
+              </label>
+              <textarea
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                maxLength={500}
+                rows={3}
+                placeholder="डुप्लिकेट कारण लिहा... (किमान 5 अक्षरे आवश्यक)"
+                disabled={submitting}
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: 10, resize: 'vertical',
+                  border: '1.5px solid #d5e1ea', fontSize: '0.92rem', fontFamily: 'inherit',
+                  color: '#18324a', outline: 'none',
+                }}
+              />
+              <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#5e7388', textAlign: 'right' }}>
+                {reason.length}/500
+              </p>
+            </div>
+            <div style={{ padding: '14px 22px 18px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onCancel}>
+                रद्द करा
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{ background: '#7c3aed', color: '#fff', border: 'none', minWidth: 120 }}
+                disabled={reason.trim().length < 5}
+                onClick={handleNext}
+              >
+                <i className="bi bi-arrow-right me-1" />पुढे जा
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ padding: '18px 22px 0' }}>
+              <div style={{ background: '#fff3cd', border: '1.5px solid #ffc107', borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
+                <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: '0.92rem', color: '#856404' }}>
+                  <i className="bi bi-exclamation-triangle-fill me-2" />तुम्हाला खात्री आहे का?
+                </p>
+                <p style={{ margin: 0, fontSize: '0.84rem', color: '#856404' }}>हा अर्ज डुप्लिकेट म्हणून चिन्हांकित केला जाईल. ही क्रिया पूर्ववत करता येणार नाही.</p>
+              </div>
+              <p style={{ margin: '0 0 4px', fontSize: '0.82rem', color: '#5e7388' }}>
+                नोंदणी क्र.: <strong style={{ color: '#18324a' }}>{target.REGISTRATION_NO}</strong>
+                {' — '}{fullName(target)}
+              </p>
+              <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '10px 14px', marginTop: 10 }}>
+                <p style={{ margin: '0 0 4px', fontSize: '0.75rem', fontWeight: 600, color: '#7c3aed' }}>कारण:</p>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: '#18324a' }}>{reason.trim()}</p>
+              </div>
+            </div>
+            <div style={{ padding: '14px 22px 18px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={handleBack} disabled={submitting}>
+                <i className="bi bi-arrow-left me-1" />मागे जा
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{ background: '#7c3aed', color: '#fff', border: 'none', minWidth: 140 }}
+                disabled={submitting}
+                onClick={() => onConfirm(reason.trim())}
+              >
+                {submitting
+                  ? <><span className="spinner-border spinner-border-sm me-1" role="status" />थांबा...</>
+                  : <><i className="bi bi-check-circle me-1" />होय, डुप्लिकेट चिन्हांकित करा</>}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+
+
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
 
 interface DetailModalProps {
@@ -240,6 +378,20 @@ function DetailModal({ summary, detail, loading, onClose }: DetailModalProps) {
     const rows = (data['documents'] ?? data['Documents'] ?? []) as Record<string, unknown>[]
     return rows.map(r => { const n: Record<string, unknown> = {}; for (const k of Object.keys(r)) n[k.toUpperCase()] = r[k]; return n })
   }, [detail])
+
+  const missingRequiredDocs = useMemo(() => {
+    const required = [
+      'UDID_DOC',
+      'AADHAAR_DOC',
+      'RATION_CARD_DOC',
+      'BANK_DOC',
+      'INCOME_CERTIFICATE_DOC',
+      'PHOTO_DOC',
+      'APPLICANT_SIGNATURE',
+    ]
+    const present = new Set(documents.map(d => String(d['DOCUMENT_CODE'] ?? '')))
+    return required.filter(code => !present.has(code))
+  }, [documents])
 
   function field(key: string): string {
     if (!reg) return '—'
@@ -316,6 +468,8 @@ function DetailModal({ summary, detail, loading, onClose }: DetailModalProps) {
                 <DetailRow label="आईचे नाव" value={field('MOTHER_NAME')} />
                 <DetailRow label="जन्मतारीख" value={formatDate(field('DOB'))} />
                 <DetailRow label="आधार क्र." value={maskAadhaar(field('AADHAAR_NUMBER'))} />
+                <DetailRow label="रेशन कार्ड क्र." value={field('RATION_CARD_NUMBER')} />
+                <DetailRow label="रेशन कार्ड रंग" value={field('RATION_CARD_COLOR')} />
                 <DetailRow label="मोबाइल" value={field('MOBILE_NUMBER')} />
                 <DetailRow label="शिक्षण" value={field('EDUCATION')} />
                 <DetailRow label="वैवाहिक स्थिती" value={field('MARITAL_STATUS')} />
@@ -464,6 +618,48 @@ function DetailModal({ summary, detail, loading, onClose }: DetailModalProps) {
                   </div>
                 </div>
               )}
+
+              {missingRequiredDocs.length > 0 && (
+                <div style={{
+                  marginBottom: 18,
+                  padding: '12px 14px',
+                  borderRadius: 10,
+                  background: '#fff8e6',
+                  border: '1.5px solid #f5d591',
+                  color: '#92400e',
+                }}>
+                  <p style={{ margin: '0 0 8px', fontWeight: 700, fontSize: '0.84rem' }}>
+                    <i className="bi bi-exclamation-circle me-2" />अपूर्ण कागदपत्रे
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.8rem' }}>
+                    {missingRequiredDocs.map(code => DOC_LABELS[code] ?? code).join(', ')}.
+                    माहिती संपादित करा वापरून हे कागदपत्र री-अपलोड करता येतील.
+                  </p>
+                </div>
+              )}
+
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 8,
+                borderTop: '1px solid #e0eaf2',
+                paddingTop: 14,
+              }}>
+                <Link
+                  href={`/women-child-welfare/registrations/${encodeURIComponent(summary.REGISTRATION_NO)}/edit${missingRequiredDocs.length > 0 ? '#missing-documents' : ''}`}
+                  className="btn btn-outline-primary btn-sm"
+                >
+                  <i className="bi bi-pencil-square me-1" />माहिती संपादित करा
+                </Link>
+                <Link
+                  href={`/women-child-welfare/registrations/${encodeURIComponent(summary.REGISTRATION_NO)}/print?download=1`}
+                  className="btn btn-primary btn-sm"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <i className="bi bi-download me-1" />अर्ज डाउनलोड करा
+                </Link>
+              </div>
             </>
           )}
         </div>
@@ -556,10 +752,21 @@ export default function RegistrationsPage() {
   const [rejectTarget, setRejectTarget] = useState<RegistrationSummary | null>(null)
   const [rejectSubmitting, setRejectSubmitting] = useState(false)
 
+  // Duplicate modal
+  const [duplicateTarget, setDuplicateTarget] = useState<RegistrationSummary | null>(null)
+  const [duplicateSubmitting, setDuplicateSubmitting] = useState(false)
+
   // Detail modal
   const [detailTarget, setDetailTarget] = useState<RegistrationSummary | null>(null)
   const [detailData, setDetailData] = useState<ApiResponse | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+
+  // Sort
+  const [sortKey, setSortKey] = useState<string | null>('CREATED_AT')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+
+  // Pagination
+  const [page, setPage] = useState(1)
 
   // Action in-progress tracker (by reg no)
   const [actionInProgress, setActionInProgress] = useState<string | null>(null)
@@ -597,7 +804,12 @@ export default function RegistrationsPage() {
 
   const filtered = useMemo(() => {
     let list = registrations
-    if (activeTab !== 'ALL') list = list.filter(r => r.STATUS === activeTab)
+    if (activeTab === 'ALL') {
+      // ALL tab does not show DUPLICATE records
+      list = list.filter(r => r.STATUS !== 'DUPLICATE')
+    } else {
+      list = list.filter(r => r.STATUS === activeTab)
+    }
     const q = searchQuery.trim().toLowerCase()
     if (q) {
       list = list.filter(r =>
@@ -607,14 +819,57 @@ export default function RegistrationsPage() {
         (r.AADHAAR_NUMBER ?? '').slice(-4).includes(q)
       )
     }
+    // ── Sort ─────────────────────────────────────────────────────
+    if (sortKey) {
+      list = [...list].sort((a, b) => {
+        let av: string | number, bv: string | number
+        if (sortKey === 'NAME') {
+          av = fullName(a).toLowerCase(); bv = fullName(b).toLowerCase()
+        } else if (sortKey === 'DISABILITY_PERCENTAGE') {
+          av = a.DISABILITY_PERCENTAGE ?? 0; bv = b.DISABILITY_PERCENTAGE ?? 0
+        } else if (sortKey === 'CREATED_AT') {
+          av = a.CREATED_AT ?? ''; bv = b.CREATED_AT ?? ''
+        } else {
+          av = String((a as unknown as Record<string, unknown>)[sortKey] ?? '').toLowerCase()
+          bv = String((b as unknown as Record<string, unknown>)[sortKey] ?? '').toLowerCase()
+        }
+        if (av < bv) return sortDir === 'asc' ? -1 : 1
+        if (av > bv) return sortDir === 'asc' ? 1 : -1
+        return 0
+      })
+    }
     return list
-  }, [registrations, activeTab, searchQuery])
+  }, [registrations, activeTab, searchQuery, sortKey, sortDir])
+
+  // ── Sort handler ──────────────────────────────────────────────────────────
+
+  function handleSort(key: string) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+    setPage(1)
+  }
+
+  // ── Pagination ────────────────────────────────────────────────────────────
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE
+    return filtered.slice(start, start + PAGE_SIZE)
+  }, [filtered, page])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setPage(1) }, [activeTab, searchQuery])
 
   // ── Status action helpers ─────────────────────────────────────────────────
 
   async function performStatusUpdate(
     target: RegistrationSummary,
-    status: 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED',
+    status: 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'DUPLICATE',
     remarks?: string
   ) {
     setActionInProgress(target.REGISTRATION_NO)
@@ -629,6 +884,7 @@ export default function RegistrationsPage() {
         description:
           status === 'APPROVED'     ? `${fullName(target)} — नोंदणी मंजूर झाली.`
           : status === 'REJECTED'   ? `${fullName(target)} — नोंदणी नाकारली.`
+          : status === 'DUPLICATE'  ? `${fullName(target)} — डुप्लिकेट म्हणून चिन्हांकित केले.`
           : `${fullName(target)} — आढाव्याधीन केले.`,
       })
       // Update local state immediately (optimistic-like)
@@ -669,6 +925,18 @@ export default function RegistrationsPage() {
     await performStatusUpdate(rejectTarget, 'REJECTED', reason)
     setRejectSubmitting(false)
     setRejectTarget(null)
+  }
+
+  function handleDuplicateOpen(r: RegistrationSummary) {
+    setDuplicateTarget(r)
+  }
+
+  async function handleDuplicateConfirm(reason: string) {
+    if (!duplicateTarget) return
+    setDuplicateSubmitting(true)
+    await performStatusUpdate(duplicateTarget, 'DUPLICATE', reason)
+    setDuplicateSubmitting(false)
+    setDuplicateTarget(null)
   }
 
   async function handleApproveConfirm() {
@@ -763,6 +1031,21 @@ export default function RegistrationsPage() {
               : <i className="bi bi-x-circle-fill" />}
           </button>
         )}
+
+        {/* Mark Duplicate */}
+        {(s === 'SUBMITTED' || s === 'UNDER_REVIEW') && (
+          <button
+            type="button" title="डुप्लिकेट म्हणून चिन्हांकित करा"
+            className="btn btn-sm"
+            style={{ padding: '4px 9px', fontSize: '0.8rem', background: '#f3e8ff', border: '1px solid #c4b5fd', color: '#5b21b6' }}
+            disabled={busy}
+            onClick={() => handleDuplicateOpen(r)}
+          >
+            {busy
+              ? <span className="spinner-border spinner-border-sm" role="status" />
+              : <i className="bi bi-files" />}
+          </button>
+        )}
       </div>
     )
   }
@@ -842,6 +1125,14 @@ export default function RegistrationsPage() {
               <i className="bi bi-plus-circle" />
               नवीन नोंदणी
             </Link>
+            <Link
+              href="/women-child-welfare/disability-registration/report"
+              className="dash-view-tab"
+              style={{ gap: 6, textDecoration: 'none' }}
+            >
+              <i className="bi bi-printer" />
+              अहवाल
+            </Link>
           </div>
         </div>
 
@@ -894,19 +1185,35 @@ export default function RegistrationsPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ background: 'var(--color-gray-50)', borderBottom: '1.5px solid var(--surface-border)' }}>
-                    {['नोंदणी क्र.', 'नाव', 'मोबाइल', 'अपंगत्व %', 'मोड', 'सादर दिनांक', 'स्थिती', 'कारवाई'].map(h => (
-                      <th key={h} style={{
-                        padding: '11px 14px', textAlign: 'left', fontWeight: 600,
-                        color: 'var(--color-text-muted)', fontSize: '0.75rem',
-                        textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
-                      }}>
-                        {h}
+                    {COLUMNS.map(col => (
+                      <th
+                        key={col.label}
+                        style={{
+                          padding: '11px 14px',
+                          textAlign: col.align === 'center' ? 'center' : 'left',
+                          fontWeight: 600,
+                          color: 'var(--color-text-muted)',
+                          fontSize: '0.75rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.06em',
+                          whiteSpace: 'nowrap',
+                          cursor: col.sortKey ? 'pointer' : 'default',
+                          userSelect: 'none',
+                        }}
+                        onClick={col.sortKey ? () => handleSort(col.sortKey!) : undefined}
+                      >
+                        {col.label}
+                        {col.sortKey && (
+                          <span style={{ marginLeft: 4, opacity: sortKey === col.sortKey ? 1 : 0.3, fontSize: '0.85em' }}>
+                            {sortKey === col.sortKey ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'}
+                          </span>
+                        )}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((r, idx) => (
+                  {paginated.map((r, idx) => (
                     <tr key={r.REGISTRATION_NO ?? idx} style={{
                       borderBottom: '1px solid var(--surface-border)',
                       background: idx % 2 === 0 ? '#fff' : 'var(--color-gray-50)',
@@ -950,9 +1257,22 @@ export default function RegistrationsPage() {
                   ))}
                 </tbody>
               </table>
-              <div style={{ padding: '10px 16px', borderTop: '1px solid var(--surface-border)', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
-                {filtered.length} नोंदणी दाखवत आहे
-                {activeTab !== 'ALL' || searchQuery ? ` (एकूण ${registrations.length} पैकी)` : ''}
+              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--surface-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                  {filtered.length === 0 ? ('0 नोंदणी') : (
+                    `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} / ${filtered.length} नोंदणी`
+                  )}
+                  {(activeTab !== 'ALL' || searchQuery) && ` (एकूण ${registrations.length} पैकी)`}
+                </span>
+                {totalPages > 1 && (
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <button type="button" className="btn btn-sm btn-outline-secondary" disabled={page === 1} onClick={() => setPage(1)} style={{ padding: '3px 8px', fontSize: '0.75rem' }}>«</button>
+                    <button type="button" className="btn btn-sm btn-outline-secondary" disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '3px 8px', fontSize: '0.75rem' }}>‹</button>
+                    <span style={{ fontSize: '0.8rem', padding: '0 8px', color: 'var(--color-text-muted)' }}>पृष्ठ {page} / {totalPages}</span>
+                    <button type="button" className="btn btn-sm btn-outline-secondary" disabled={page === totalPages} onClick={() => setPage(p => p + 1)} style={{ padding: '3px 8px', fontSize: '0.75rem' }}>›</button>
+                    <button type="button" className="btn btn-sm btn-outline-secondary" disabled={page === totalPages} onClick={() => setPage(totalPages)} style={{ padding: '3px 8px', fontSize: '0.75rem' }}>»</button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -981,6 +1301,16 @@ export default function RegistrationsPage() {
           onCancel={() => setRejectTarget(null)}
           onConfirm={handleRejectConfirm}
           submitting={rejectSubmitting}
+        />
+      )}
+
+      {/* ── Duplicate modal ── */}
+      {duplicateTarget && (
+        <DuplicateModal
+          target={duplicateTarget}
+          onCancel={() => setDuplicateTarget(null)}
+          onConfirm={handleDuplicateConfirm}
+          submitting={duplicateSubmitting}
         />
       )}
 

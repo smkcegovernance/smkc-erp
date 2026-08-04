@@ -494,6 +494,17 @@ export const depositApi = {
     });
   },
 
+  invalidateRequirement: async (id: string, invalidatedBy: string, invalidationReason: string): Promise<void> => {
+    const response = await fetch(`/depositmanager/api/proxy/requirements/${id}/invalidate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invalidatedBy, invalidationReason }),
+    });
+    if (response.status === 204 || response.ok) return;
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to invalidate requirement');
+  },
+
   // Banks
   getBanks: async (): Promise<Bank[]> => {
     const apiResponse = await apiCall<BankAPI[]>('/depositmanager/api/proxy/banks');

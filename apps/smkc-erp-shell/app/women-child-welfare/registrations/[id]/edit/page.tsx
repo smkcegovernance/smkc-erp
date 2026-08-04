@@ -100,6 +100,8 @@ function mapApiToForm(
     motherName: String(reg['MOTHER_NAME'] ?? ''),
     education: String(reg['EDUCATION'] ?? ''),
     aadhaarNumber: String(reg['AADHAAR_NUMBER'] ?? ''),
+    rationCardNumber: String(reg['RATION_CARD_NUMBER'] ?? ''),
+    rationCardColor: String(reg['RATION_CARD_COLOR'] ?? ''),
     dob: isoToDate(reg['DOB']),
     maritalStatus: String(reg['MARITAL_STATUS'] ?? ''),
     religion: String(reg['RELIGION'] ?? ''),
@@ -108,6 +110,7 @@ function mapApiToForm(
 
     // Address & Contact
     fullAddress: String(reg['FULL_ADDRESS'] ?? ''),
+    livesInCorporationArea: String(reg['LIVES_IN_CORPORATION_AREA'] ?? ''),
     wardNumber: String(reg['WARD_NUMBER'] ?? ''),
     prabhagSamiti: String(reg['PRABHAG_SAMITI'] ?? ''),
     uphc: String(reg['UPHC'] ?? ''),
@@ -161,7 +164,9 @@ function mapApiToForm(
     // Documents — null = not replaced (server keeps existing file)
     udidDoc: null,
     aadhaarDoc: null,
+    rationCardDoc: null,
     bankDoc: null,
+    incomeCertificateDoc: null,
     photoDoc: null,
 
     // Signatures
@@ -290,6 +295,8 @@ export default function EditRegistrationPage() {
       if (isBlank(formData.education)) e.education = 'कृपया शिक्षण निवडा'
       if (isBlank(formData.aadhaarNumber)) e.aadhaarNumber = 'कृपया आधार क्रमांक प्रविष्ट करा'
       else if (!/^\d{12}$/.test(formData.aadhaarNumber)) e.aadhaarNumber = 'कृपया वैध 12 अंकी आधार क्रमांक प्रविष्ट करा'
+      if (isBlank(formData.rationCardNumber)) e.rationCardNumber = 'कृपया रेशन कार्ड क्रमांक प्रविष्ट करा'
+      if (isBlank(formData.rationCardColor)) e.rationCardColor = 'कृपया रेशन कार्ड रंग निवडा'
       if (!formData.dob) e.dob = 'कृपया जन्मतारीख निवडा'
       if (isBlank(formData.maritalStatus)) e.maritalStatus = 'कृपया वैवाहिक स्थिती निवडा'
       if (isBlank(formData.religion)) e.religion = 'कृपया धर्म निवडा'
@@ -351,8 +358,10 @@ export default function EditRegistrationPage() {
       if (isBlank(formData.documentsSubmitted)) e.documentsSubmitted = 'कागदपत्रे सादर केली आहेत का ते निवडा'
       // Documents: required only if NOT already on server and no new file chosen
       if (!formData.udidDoc && !existingDocCodes.has('UDID_DOC')) e.udidDoc = 'कृपया UDID / दिव्यांग प्रमाणपत्र अपलोड करा'
-      if (!formData.aadhaarDoc && !existingDocCodes.has('AADHAAR_DOC')) e.aadhaarDoc = 'कृपया आधारकार्ड / रेशनकार्ड अपलोड करा'
+      if (!formData.aadhaarDoc && !existingDocCodes.has('AADHAAR_DOC')) e.aadhaarDoc = 'कृपया आधारकार्ड अपलोड करा'
+      if (!formData.rationCardDoc && !existingDocCodes.has('RATION_CARD_DOC')) e.rationCardDoc = 'कृपया रेशनकार्ड अपलोड करा'
       if (!formData.bankDoc && !existingDocCodes.has('BANK_DOC')) e.bankDoc = 'कृपया बँक खाते झेरॉक्स अपलोड करा'
+      if (!formData.incomeCertificateDoc && !existingDocCodes.has('INCOME_CERTIFICATE_DOC')) e.incomeCertificateDoc = 'कृपया उत्पन्न दाखला / वार्षिक आय प्रमाणपत्र अपलोड करा'
       if (!formData.photoDoc && !existingDocCodes.has('PHOTO_DOC')) e.photoDoc = 'कृपया फोटो अपलोड करा'
       if (!formData.applicantSignature && isBlank(formData.applicantSignaturePreview)) e.applicantSignature = 'कृपया अर्जदाराची सही अपलोड करा'
       if (!formData.applicantSignDate) e.applicantSignDate = 'अर्जदाराची सही दिनांक आवश्यक आहे'
@@ -525,7 +534,7 @@ export default function EditRegistrationPage() {
           fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 8,
         }}>
           <i className="bi bi-pencil-square" />
-          <span>विभागीय संपादन मोड — नवीन फाइल अपलोड केली तरच जुनी बदलली जाईल. फील्ड रिकामी सोडल्यास सर्व्हरवरील डेटा कायम राहतो.</span>
+          <span>विभागीय संपादन मोड — नवीन फाइल अपलोड केली तरच जुनी बदलली जाईल. अपूर्ण कागदपत्रे असल्यास खाली Step 4 मध्ये थेट री-अपलोड करू शकता.</span>
         </div>
 
         {/* Existing-document status pills */}
@@ -580,6 +589,7 @@ export default function EditRegistrationPage() {
               updateFormData={updateFormDataField}
               setFieldError={setFieldError}
               errors={errors}
+              existingDocCodes={existingDocCodes}
               onPrev={handlePrev}
               onSubmit={handleSubmit}
               isSubmitting={isSubmitting}

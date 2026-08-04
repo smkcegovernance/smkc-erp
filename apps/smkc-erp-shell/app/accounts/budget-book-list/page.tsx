@@ -139,7 +139,9 @@ export default function BudgetBookListPage() {
           acSubhead: e.acSubhead,
           acSubheadName: e.acSubheadName,
           budgetAmount: e.budgetAmount,
-          remainingBefore: isPrimary ? remainingBefore : remainingBefore,
+          // Primary: remaining before primary = totalBudget (remainingStored + primaryAmt)
+          // Final:   remaining before final   = remainingStored (= after primary, before final)
+          remainingBefore: isPrimary ? remainingBefore : e.remainingBudgetAmount,
           proposedAmount: isPrimary ? e.proposedWorkAmount : (e.finalProposedWorkAmount || 0),
           remainingAfter: isPrimary ? e.remainingBudgetAmount : remainingAfterFinal,
           entryDate: isPrimary ? e.entryDate : (e.finalEntryDate ?? e.entryDate),

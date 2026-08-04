@@ -276,7 +276,7 @@ export default function BankRequirementDetailPage() {
                       if (!user || !existingQuote) return;
                       try {
                         setDownloading(true);
-                        const url = `/api/proxy/consent/download?requirementId=${encodeURIComponent(String(existingQuote.requirementId || ''))}&bankId=${encodeURIComponent(String((user.bankId || user.userId || '')))}&fileName=${encodeURIComponent(String(existingQuote.consentFileName || 'consent-document.pdf'))}`;
+                        const url = `/depositmanager/api/proxy/consent/download?requirementId=${encodeURIComponent(String(existingQuote.requirementId || ''))}&bankId=${encodeURIComponent(String((user.bankId || user.userId || '')))}&fileName=${encodeURIComponent(String(existingQuote.consentFileName || 'consent-document.pdf'))}` ;
                         const res = await fetch(url);
                         const ct = res.headers.get('content-type') || '';
                         if (!res.ok) throw new Error(`Download failed (${res.status})`);

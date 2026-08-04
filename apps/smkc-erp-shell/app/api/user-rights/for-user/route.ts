@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const url = `${SMKC_API_BASE}/api/user-rights/for-user?userId=${encodeURIComponent(userId.trim())}`
+    const encodedUserId = encodeURIComponent(userId.trim())
+    const url = `${SMKC_API_BASE}/api/user-rights/for-user?userId=${encodedUserId}`
     const upstream = await fetch(url, { cache: 'no-store' })
     const data = await upstream.json()
     return NextResponse.json(data, { status: upstream.status })

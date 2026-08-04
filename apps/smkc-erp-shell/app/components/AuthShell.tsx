@@ -60,7 +60,10 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
       saveSession(result.session)
       setSession(result.session)
       setPassword('')
-      router.push('/')
+      const returnTo = (pathname && pathname !== '/' && !pathname.startsWith('/public'))
+        ? `${pathname}${window.location.search}`
+        : '/'
+      router.push(returnTo)
     } finally {
       setIsLoading(false)
     }

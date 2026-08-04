@@ -51,6 +51,10 @@ export default function PersonalInfoSection({
     if (field === 'aadhaarNumber') {
       value = value.replace(/\D/g, '').slice(0, 12)
     }
+
+    if (field === 'rationCardNumber') {
+      value = value.toUpperCase().replace(/[^A-Z0-9/-]/g, '').slice(0, 20)
+    }
     
     updateFormData(field, value)
   }
@@ -194,6 +198,32 @@ export default function PersonalInfoSection({
                 inputMode="numeric"
               />
               {errors.aadhaarNumber && <div className="invalid-feedback">{errors.aadhaarNumber}</div>}
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">4-अ. रेशन कार्ड क्रमांक <span className="required">*</span></label>
+              <input
+                type="text"
+                className={`form-control ${errors.rationCardNumber ? 'is-invalid' : ''}`}
+                value={formData.rationCardNumber}
+                onChange={handleInputChange('rationCardNumber')}
+                placeholder="रेशन कार्ड क्रमांक"
+                maxLength={20}
+              />
+              {errors.rationCardNumber && <div className="invalid-feedback">{errors.rationCardNumber}</div>}
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">4-ब. रेशन कार्ड रंग <span className="required">*</span></label>
+              <select
+                className={`form-select ${errors.rationCardColor ? 'is-invalid' : ''}`}
+                value={formData.rationCardColor}
+                onChange={handleInputChange('rationCardColor')}
+              >
+                <option value="">निवडा</option>
+                <option value="WHITE">पांढरा</option>
+                <option value="YELLOW">पिवळा</option>
+                <option value="ORANGE">केशरी</option>
+              </select>
+              {errors.rationCardColor && <div className="invalid-feedback">{errors.rationCardColor}</div>}
             </div>
             <div className="col-md-6">
               <label className="form-label">5. जन्मतारीख <span className="required">*</span></label>

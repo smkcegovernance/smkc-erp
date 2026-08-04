@@ -9,7 +9,7 @@ import { useLanguage } from '../lib/i18n/LanguageContext'
 import { usePermissions, hasMenuAccess } from '../lib/permissions'
 import { useDepts } from '../lib/DeptContext'
 
-const GROUP_ORDER: Array<MenuGroup['key']> = ['transactions', 'applications', 'reports', 'masters']
+const GROUP_ORDER: Array<MenuGroup['key']> = ['transactions', 'departmental-samaj', 'departmental-workorders', 'applications', 'reports', 'masters']
 
 interface DeptSidebarProps {
   deptKey: string

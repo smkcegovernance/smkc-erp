@@ -124,6 +124,22 @@ export function hasMenuAccess(
   if (perms.isAdmin) return true
   const allowed = perms.rights[deptKey]
   if (!allowed) return false
+  // Backward compatibility: allow the new Accounts report menu for users who
+  // already have any Accounts rights, even if this specific key is not yet
+  // present in older ERP_USER_RIGHTS rows.
+  if (
+    deptKey === 'accounts' &&
+    (
+      menuItemKey === 'budget-liability-report' ||
+      menuItemKey === 'fund-wise-budget-liability-report' ||
+      menuItemKey === 'ward-wise-expenditure-report' ||
+      menuItemKey === 'bill-payment-report'
+    ) &&
+    Array.isArray(allowed) &&
+    allowed.length > 0
+  ) {
+    return true
+  }
   return allowed.includes(menuItemKey)
 }
 
@@ -157,7 +173,7 @@ export function usePermissions(): { permissions: UserPermissions | null; loading
     // Read current user from session
     let userId: string | null = null
     try {
-      const raw = sessionStorage.getItem('smkc_session')
+      const raw = localStorage.getItem('smkc_session')
       if (raw) {
         const session = JSON.parse(raw) as { user?: { userId?: string } }
         userId = session?.user?.userId ?? null

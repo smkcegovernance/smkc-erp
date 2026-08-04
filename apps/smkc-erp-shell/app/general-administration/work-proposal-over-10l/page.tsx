@@ -12,7 +12,7 @@ import { useLanguage } from '@/app/lib/i18n/LanguageContext'
 
 interface DeptOption { deptCode: number; deptName: string; deptNameLL: string; deptNameLLUnicode: string }
 interface SubheadOption { acSubhead: string; acSubheadName: string; acSubheadNameLL: string; acSubheadNameLLUnicode: string }
-interface BudgetInfo { acSubhead: string; finYear: string; totalBudget: number; effectiveBudget: number; actualExpenditure: number; remainingBudget: number; capPercentage?: number | null; capAmount?: number | null }
+interface BudgetInfo { acSubhead: string; finYear: string; totalBudget: number; effectiveBudget: number; rawCapBudget?: number; actualExpenditure: number; remainingBudget: number; capPercentage?: number | null; capAmount?: number | null }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -52,6 +52,25 @@ const OVERLAY_STYLE: React.CSSProperties = {
 const MODAL_STYLE: React.CSSProperties = {
   background: '#fff', borderRadius: 14, boxShadow: '0 24px 60px rgba(18,49,76,0.22)',
   width: '100%', maxWidth: 520,
+}
+
+const NEWSPAPER_LEVEL_OPTIONS = [
+  { value: 'स्थानिकस्तर', label: 'स्थानिकस्तर' },
+  { value: 'राज्यस्तर', label: 'राज्यस्तर' },
+  { value: 'राष्ट्रीयस्तर', label: 'राष्ट्रीयस्तर' },
+]
+
+const PERIOD_TYPE_OPTIONS = [
+  { value: 'दिवस', label: 'दिवस' },
+  { value: 'महिने', label: 'महिने' },
+  { value: 'वर्षे', label: 'वर्षे' },
+]
+
+function combinePeriodValue(numberValue: string, periodType: string): string {
+  const n = numberValue.trim()
+  const t = periodType.trim()
+  if (!n || !t) return ''
+  return `${n} ${t}`
 }
 
 // ── SectionLabel ───────────────────────────────────────────────────────────────
@@ -280,9 +299,13 @@ export default function WorkProposalOver10LPage() {
   const [acHeadValid, setAcHeadValid] = useState('')
   const [otherDept, setOtherDept] = useState('')
   const [workSplit, setWorkSplit] = useState('')
-  const [maintenancePeriod, setMaintenancePeriod] = useState('')
+  const [maintenancePeriodNumber, setMaintenancePeriodNumber] = useState('')
+  const [maintenancePeriodType, setMaintenancePeriodType] = useState('')
   const [prevMaintenance, setPrevMaintenance] = useState('')
   const [competentOfficer, setCompetentOfficer] = useState('')
+  const [tenderDurationNumber, setTenderDurationNumber] = useState('')
+  const [tenderDurationType, setTenderDurationType] = useState('')
+  const [newspaperLevel, setNewspaperLevel] = useState('')
 
   // Remarks
   const [remarks, setRemarks] = useState('')
@@ -373,6 +396,8 @@ export default function WorkProposalOver10LPage() {
 
   const proposalNum = parseFloat(proposalCost.replace(/,/g, '')) || 0
   const workAmountNum = parseFloat(workAmount.replace(/,/g, '')) || 0
+  const maintenancePeriod = combinePeriodValue(maintenancePeriodNumber, maintenancePeriodType)
+  const tenderDuration = combinePeriodValue(tenderDurationNumber, tenderDurationType)
   // Tender: work amount must be > ₹1 Lac (1,00,000)
   const under1L = proposalNum > 0 && proposalNum <= 100000
   const budgetExceeded = budgetInfo !== null && proposalNum > 0 && proposalNum > budgetInfo.remainingBudget
@@ -388,7 +413,9 @@ export default function WorkProposalOver10LPage() {
     townPlanCheck && townPlanApproval && expendValid && stockListAttached && photoAttached &&
     acSubhead && proposalNum > 100000 &&
     acHeadValid && otherDept && workSplit &&
-    maintenancePeriod.trim() && prevMaintenance && competentOfficer.trim()
+    maintenancePeriodNumber.trim() && Number(maintenancePeriodNumber) > 0 && maintenancePeriodType &&
+    prevMaintenance && competentOfficer.trim() &&
+    tenderDurationNumber.trim() && Number(tenderDurationNumber) > 0 && tenderDurationType && newspaperLevel
 
   // ── Save ───────────────────────────────────────────────────────────────────
 
@@ -418,6 +445,7 @@ export default function WorkProposalOver10LPage() {
         townPlanCheck, townPlanApproval, expendValid, stockListAttached, photoAttached,
         acSubhead, proposalCost: proposalNum,
         acHeadValid, otherDept, workSplit, maintenancePeriod, prevMaintenance, competentOfficer,
+        tenderDuration, newspaperLevel,
         remarks, enteredBy: user?.userId ?? 'ERP',
         preGeneratedOrderNo,
       }
@@ -445,6 +473,7 @@ export default function WorkProposalOver10LPage() {
           acSubheadName: selectedSubheadObj?.acSubheadNameLLUnicode || selectedSubheadObj?.acSubheadName || '',
           proposalCost: proposalNum, budgetAmount: budgetInfo?.totalBudget ?? 0,
           acHeadValid, otherDept, workSplit, maintenancePeriod, prevMaintenance, competentOfficer,
+          tenderDuration, newspaperLevel,
           remarks, enteredBy: user?.userId ?? 'ERP', entryDate: new Date().toISOString(),
         }
         setPrintData(pd)
@@ -460,7 +489,8 @@ export default function WorkProposalOver10LPage() {
         setStockListAttached(''); setPhotoAttached('')
         setAcSubhead(''); setProposalCost(''); setBudgetInfo(null)
         setAcHeadValid(''); setOtherDept(''); setWorkSplit('')
-        setMaintenancePeriod(''); setPrevMaintenance(''); setCompetentOfficer('')
+        setMaintenancePeriodNumber(''); setMaintenancePeriodType(''); setPrevMaintenance(''); setCompetentOfficer('')
+        setTenderDurationNumber(''); setTenderDurationType(''); setNewspaperLevel('')
         setRemarks('')
         // Fetch next nasti number for the next entry
         loadNastiNo()
@@ -502,7 +532,7 @@ export default function WorkProposalOver10LPage() {
               <i className="bi bi-file-earmark-arrow-up-fill" style={{ fontSize: '1.6rem' }} />
             </div>
             <div>
-              <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>निविदा मागवण्यास मान्यता</h1>
+              <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>निविदा मागविण्यास मान्यता</h1>
               <p style={{ margin: 0, opacity: 0.85, fontSize: '0.88rem' }}>₹1 लाखावरील कामांसाठी — सामान्य प्रशासन विभाग</p>
             </div>
           </div>
@@ -740,7 +770,7 @@ export default function WorkProposalOver10LPage() {
                   </div>
                   <div style={{ background: (budgetInfo.capPercentage != null || budgetInfo.capAmount != null) ? '#fff3cd' : '#e8f3ff', borderRadius: 10, padding: '12px 16px', border: '1.5px solid #ffc10740' }}>
                     <div style={{ fontSize: '0.78rem', color: '#5e7388', marginBottom: 4 }}>उपलब्ध (मर्यादित)</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#856404' }}>₹ {fmtCurrency(budgetInfo.effectiveBudget)}</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#856404' }}>₹ {fmtCurrency(budgetInfo.rawCapBudget ?? budgetInfo.effectiveBudget)}</div>
                   </div>
                   <div style={{ background: '#fffbea', borderRadius: 10, padding: '12px 16px', border: '1.5px solid #d9770620' }}>
                     <div style={{ fontSize: '0.78rem', color: '#5e7388', marginBottom: 4 }}>वचनबद्ध खर्च</div>
@@ -794,7 +824,21 @@ export default function WorkProposalOver10LPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
               <div>
                 <label style={LABEL_STYLE}>कामगिरीचा परिरक्षण कालावधी <span style={{ color: '#1a6db5' }}>*</span></label>
-                <input type="text" value={maintenancePeriod} onChange={e => setMaintenancePeriod(e.target.value)} style={INPUT_STYLE} placeholder="उदा. 2 वर्षे" maxLength={100} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 10 }}>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={maintenancePeriodNumber}
+                    onChange={e => setMaintenancePeriodNumber(e.target.value)}
+                    style={INPUT_STYLE}
+                    placeholder="उदा. 2"
+                  />
+                  <select value={maintenancePeriodType} onChange={e => setMaintenancePeriodType(e.target.value)} style={INPUT_STYLE}>
+                    <option value="">-- निवडा --</option>
+                    {PERIOD_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </div>
               </div>
               <div>
                 <label style={LABEL_STYLE}>पूर्वीचा परिरक्षण कालावधी संपण्यापूर्वीच कामगिरी प्रस्तावित आहे का? <span style={{ color: '#1a6db5' }}>*</span></label>
@@ -805,6 +849,36 @@ export default function WorkProposalOver10LPage() {
             <div style={{ marginBottom: 20 }}>
               <label style={LABEL_STYLE}>प्रस्तावास प्रशासकीय मान्यता देण्यास पात्र सक्षम प्राधिकारी <span style={{ color: '#1a6db5' }}>*</span></label>
               <textarea value={competentOfficer} onChange={e => setCompetentOfficer(e.target.value)} rows={2} style={{ ...INPUT_STYLE, resize: 'vertical' }} placeholder="सक्षम प्राधिकाऱ्याचे नाव व पद लिहा..." maxLength={500} />
+            </div>
+
+            <SectionLabel text="निविदा तपशील" />
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+              <div>
+                <label style={LABEL_STYLE}>अपेक्षित खर्चानुसार निविदा कालावधी <span style={{ color: '#1a6db5' }}>*</span></label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 10 }}>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={tenderDurationNumber}
+                    onChange={e => setTenderDurationNumber(e.target.value)}
+                    style={INPUT_STYLE}
+                    placeholder="उदा. 3"
+                  />
+                  <select value={tenderDurationType} onChange={e => setTenderDurationType(e.target.value)} style={INPUT_STYLE}>
+                    <option value="">-- निवडा --</option>
+                    {PERIOD_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label style={LABEL_STYLE}>निविदा प्रसिद्धीकरणासाठी वर्तमानपत्राचा स्तर <span style={{ color: '#1a6db5' }}>*</span></label>
+                <select value={newspaperLevel} onChange={e => setNewspaperLevel(e.target.value)} style={INPUT_STYLE}>
+                  <option value="">-- निवडा --</option>
+                  {NEWSPAPER_LEVEL_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </div>
             </div>
 
             {/* ══ अन्य अभिप्राय ════════════════════════════════════════════════ */}

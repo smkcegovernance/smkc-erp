@@ -148,7 +148,7 @@ function CommissionerQuotesPageInner() {
     if (!quote.consentFileName) return;
     try {
       setDownloadingId(quote.id);
-      const url = `/api/proxy/consent/download?requirementId=${encodeURIComponent(quote.requirementId)}&bankId=${encodeURIComponent(quote.bankId)}&fileName=${encodeURIComponent(quote.consentFileName)}`;
+      const url = `/depositmanager/api/proxy/consent/download?requirementId=${encodeURIComponent(quote.requirementId)}&bankId=${encodeURIComponent(quote.bankId)}&fileName=${encodeURIComponent(quote.consentFileName)}`;
       console.log('[CommissionerQuotes] Download request', { url, quoteId: quote.id, fileName: quote.consentFileName });
       const res = await fetch(url);
       const ct = res.headers.get('content-type') || '';

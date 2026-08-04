@@ -12,7 +12,7 @@ import { useLanguage } from '@/app/lib/i18n/LanguageContext'
 
 interface DeptOption { deptCode: number; deptName: string; deptNameLL: string; deptNameLLUnicode: string }
 interface SubheadOption { acSubhead: string; acSubheadName: string; acSubheadNameLL: string; acSubheadNameLLUnicode: string }
-interface BudgetInfo { acSubhead: string; finYear: string; totalBudget: number; effectiveBudget: number; actualExpenditure: number; remainingBudget: number; capPercentage?: number | null; capAmount?: number | null }
+interface BudgetInfo { acSubhead: string; finYear: string; totalBudget: number; effectiveBudget: number; rawCapBudget?: number; actualExpenditure: number; remainingBudget: number; capPercentage?: number | null; capAmount?: number | null }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -416,7 +416,7 @@ export default function WorkProposalOtherPage() {
         const selectedSubheadObj = subheads.find(s => s.acSubhead === acSubhead)
         setPrintData({
           orderNo: json.orderNo ?? 0,
-          proposalType: 'Q',
+          proposalType: 'O',
           finYear,
           deptName: selectedDeptObj?.deptNameLLUnicode || selectedDeptObj?.deptNameLL || selectedDeptObj?.deptName || String(deptCode),
           nastiType,
@@ -459,7 +459,7 @@ export default function WorkProposalOtherPage() {
         })
         setLastPrintData({
           orderNo: json.orderNo ?? 0,
-          proposalType: 'Q',
+          proposalType: 'O',
           finYear,
           deptName: selectedDeptObj?.deptNameLLUnicode || selectedDeptObj?.deptNameLL || selectedDeptObj?.deptName || String(deptCode),
           nastiType, nastiNo, workName, workPlace, mapAttached,
@@ -525,7 +525,7 @@ export default function WorkProposalOtherPage() {
               <i className="bi bi-file-earmark-diff-fill" style={{ fontSize: '1.6rem' }} />
             </div>
             <div>
-              <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>इतर प्रस्ताव</h1>
+              <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>प्रस्तावित खर्चास मान्यता</h1>
               <p style={{ margin: 0, opacity: 0.85, fontSize: '0.88rem' }}>सामान्य प्रशासन विभाग</p>
             </div>
           </div>
@@ -762,7 +762,7 @@ export default function WorkProposalOtherPage() {
                   </div>
                   <div style={{ background: (budgetInfo.capPercentage != null || budgetInfo.capAmount != null) ? '#fff3cd' : '#d8f3dc', borderRadius: 10, padding: '12px 16px', border: '1.5px solid #ffc10740' }}>
                     <div style={{ fontSize: '0.78rem', color: '#5e7388', marginBottom: 4 }}>उपलब्ध (मर्यादित)</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#856404' }}>₹ {fmtCurrency(budgetInfo.effectiveBudget)}</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#856404' }}>₹ {fmtCurrency(budgetInfo.rawCapBudget ?? budgetInfo.effectiveBudget)}</div>
                   </div>
                   <div style={{ background: '#fffbea', borderRadius: 10, padding: '12px 16px', border: '1.5px solid #d9770620' }}>
                     <div style={{ fontSize: '0.78rem', color: '#5e7388', marginBottom: 4 }}>वचनबद्ध खर्च</div>

@@ -112,6 +112,11 @@ export async function proxyRequest(
     const response = await fetch(apiUrl, fetchOptions);
     console.log('[Proxy] API response status:', response.status);
     console.log('[Proxy] API response headers:', Object.fromEntries(response.headers.entries()));
+
+    // 204 No Content — success with no body
+    if (response.status === 204) {
+      return new NextResponse(null, { status: 204 });
+    }
     
     const contentType = response.headers.get('content-type');
     

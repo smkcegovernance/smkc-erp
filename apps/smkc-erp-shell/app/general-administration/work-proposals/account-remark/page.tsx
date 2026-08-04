@@ -107,12 +107,13 @@ function AccountRemarkInner() {
     <>
       {/* ── Print styles ── */}
       <style>{`
+        @page { size: A4 portrait; margin: 15mm 18mm; }
         @media print {
           body * { visibility: hidden !important; }
           #ga-account-remark-print-slip, #ga-account-remark-print-slip * { visibility: visible !important; }
           #ga-account-remark-print-slip {
             position: fixed; left: 0; top: 0; width: 100%;
-            background: #fff; padding: 24px 32px; z-index: 9999;
+            background: #fff; padding: 0; z-index: 9999;
           }
           .no-print { display: none !important; }
         }

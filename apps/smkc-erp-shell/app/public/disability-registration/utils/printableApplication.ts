@@ -37,7 +37,7 @@ export function getPrintableApplicationSnapshot(registrationNumber: string): Pri
   }
 }
 
-export function getPrintableApplicationUrl(registrationNumber: string, autoPrint = false) {
-  const params = autoPrint ? '?autoprint=1' : ''
+export function getPrintableApplicationUrl(registrationNumber: string, mode: 'print' | 'download' = 'print') {
+  const params = mode === 'download' ? '?download=1' : '?autoprint=1'
   return `/public/disability-registration/print/${encodeURIComponent(registrationNumber)}${params}`
 }

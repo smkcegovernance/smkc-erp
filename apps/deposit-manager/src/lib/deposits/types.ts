@@ -114,7 +114,10 @@ export interface DepositRequirementAPI {
   AMOUNT: number;
   DEPOSIT_PERIOD: number; // in months
   VALIDITY_PERIOD: string; // ISO date string
-  STATUS: 'draft' | 'published' | 'expired' | 'finalized';
+  STATUS: 'draft' | 'published' | 'expired' | 'finalized' | 'invalidated';
+  INVALIDATED_BY?: string;
+  INVALIDATED_AT?: string;
+  INVALIDATION_REASON?: string;
   CREATED_BY: string;
   CREATED_AT: string;
   AUTHORIZED_BY?: string;
@@ -138,7 +141,7 @@ export interface DepositRequirement {
   amount: number;
   depositPeriod: number; // in months
   validityPeriod: string; // ISO date string
-  status: 'draft' | 'published' | 'expired' | 'finalized';
+  status: 'draft' | 'published' | 'expired' | 'finalized' | 'invalidated';
   createdBy: string;
   createdAt: string;
   authorizedBy?: string;
@@ -147,6 +150,9 @@ export interface DepositRequirement {
   finalizedAt?: string;
   description?: string;
   specialConditions?: string; // alias for description when used in UI
+  invalidatedBy?: string;
+  invalidatedAt?: string;
+  invalidationReason?: string;
 }
 
 // Mapper function to convert API response to camelCase
@@ -173,6 +179,9 @@ export function mapRequirementFromAPI(apiReq: any): DepositRequirement {
     finalizedAt: r.FINALIZED_AT,
     description: r.DESCRIPTION,
     specialConditions: r.DESCRIPTION,
+    invalidatedBy: r.INVALIDATED_BY,
+    invalidatedAt: r.INVALIDATED_AT,
+    invalidationReason: r.INVALIDATION_REASON,
   };
 }
 

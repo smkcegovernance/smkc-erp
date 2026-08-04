@@ -57,6 +57,8 @@ export interface Translations {
     applications: string
     reports: string
     masters: string
+    'departmental-samaj': string
+    'departmental-workorders': string
   }
 
   views: {
@@ -166,6 +168,8 @@ const en: Translations = {
     applications: 'Applications',
     reports: 'Reports',
     masters: 'Masters',
+    'departmental-samaj': 'Departmental Samaj',
+    'departmental-workorders': 'Departmental Workorders',
   },
 
   views: {
@@ -308,6 +312,10 @@ const en: Translations = {
       'work-proposal-over-10l':  'Tender Proposal (Over ₹1 Lakh)',
       'work-proposal-other':     'Other Proposal',
       'work-proposals':          'My Proposals',
+      'create-samaj':            'Create New Samaj',
+      'samaj-list':              'View Generated Samaj',
+      'create-work-order':       'Create New Work Order',
+      'work-order-list':         'View Generated Work Orders',
       'account-remark':          'Account Dept. Remarks',
       'audit-remark':            'Audit Dept. Remarks',
       'leave-approval':       'Leave Approval',
@@ -748,6 +756,8 @@ const mr: Translations = {
     applications: 'अर्ज',
     reports: 'अहवाल',
     masters: 'मास्टर',
+    'departmental-samaj': 'विभागीय समज',
+    'departmental-workorders': 'विभागीय कार्यादेश',
   },
 
   views: {
@@ -886,10 +896,14 @@ const mr: Translations = {
       'tax-rate':             'कर दर',
     },
     'general-administration': {
-      'work-proposal-under-10l': 'दरपत्राक प्रस्ताव (₹1 लाखापर्यंत)',
+      'work-proposal-under-10l': 'दरपत्रक प्रस्ताव (₹1 लाखापर्यंत)',
       'work-proposal-over-10l':  'टेंडर प्रस्ताव (₹1 लाखावरील)',
       'work-proposal-other':     'इतर प्रस्ताव',
       'work-proposals':          'माझे प्रस्ताव',
+      'create-samaj':            'नवीन समज तयार करा',
+      'samaj-list':              'तयार केलेली समज यादी',
+      'create-work-order':       'नवीन कार्यादेश तयार करा',
+      'work-order-list':         'तयार केलेले कार्यादेश यादी',
       'account-remark':          'लेखा विभागाचे अभिप्राय',
       'audit-remark':            'लेखापरीक्षण अभिप्राय',
       'leave-approval':       'रजा मंजुरी',

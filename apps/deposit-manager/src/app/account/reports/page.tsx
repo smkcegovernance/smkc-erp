@@ -9,7 +9,7 @@ import { PageLoader } from '@/components/deposits/LoadingSpinner';
 import { depositApi } from '@/lib/deposits';
 import { formatAmount } from '@/lib/deposits/formatters';
 
-type ReportType = 'requirements' | 'quotes' | 'finalized' | 'performance' | 'monthly' | 'banks' | null;
+type ReportType = 'requirements' | 'quotes' | 'finalized' | 'performance' | 'monthly' | 'banks' | 'summary' | null;
 
 export default function AccountReportsPage() {
   const router = useRouter();
@@ -56,6 +56,13 @@ export default function AccountReportsPage() {
           const allReqs = await depositApi.getRequirements('account');
           setRequirements(allReqs);
           break;
+        case 'summary': {
+          const summaryReqs = await depositApi.getRequirements('account', { status: 'published' });
+          const summaryQuotes = await depositApi.getQuotes('account');
+          setRequirements(summaryReqs);
+          setQuotes(summaryQuotes);
+          break;
+        }
         case 'banks':
           const allBanks = await depositApi.getBanks();
           setBanks(allBanks);
@@ -214,6 +221,24 @@ export default function AccountReportsPage() {
             </button>
           </div>
 
+          {/* Requirement Summary Report */}
+          <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border-2 border-blue-200">
+            <div className="w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Requirement Summary</h3>
+            <p className="text-gray-600 text-sm mb-4">Printable scheme-wise summary with bank quotes &amp; rankings</p>
+            <button
+              onClick={() => loadReportData('summary')}
+              disabled={loading}
+              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
+            >
+              {loading && activeReport === 'summary' ? 'Loading...' : 'View &amp; Print'}
+            </button>
+          </div>
+
           {/* Registered Banks Report */}
           <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
             <div className="w-12 h-12 rounded-lg bg-teal-100 flex items-center justify-center mb-4">
@@ -244,17 +269,31 @@ export default function AccountReportsPage() {
                 {activeReport === 'performance' && 'Bank Performance Report'}
                 {activeReport === 'monthly' && 'Monthly Summary Report'}
                 {activeReport === 'banks' && 'Registered Banks Report'}
+                {activeReport === 'summary' && 'Requirement Summary Report'}
               </h2>
               <div className="flex gap-3">
-                <button
-                  onClick={() => exportToCSV(activeReport)}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Export CSV
-                </button>
+                {activeReport === 'summary' && (
+                  <button
+                    onClick={() => window.print()}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Print Report
+                  </button>
+                )}
+                {activeReport !== 'summary' && (
+                  <button
+                    onClick={() => exportToCSV(activeReport)}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Export CSV
+                  </button>
+                )}
                 <button
                   onClick={() => setActiveReport(null)}
                   className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"
@@ -449,6 +488,127 @@ export default function AccountReportsPage() {
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Requirement Summary Report - Printable */}
+            {activeReport === 'summary' && (
+              <div id="summary-print-area">
+                <style>{`
+                  @media print {
+                    body * { visibility: hidden; }
+                    #summary-print-area, #summary-print-area * { visibility: visible; }
+                    #summary-print-area { position: absolute; top: 0; left: 0; width: 100%; }
+                    .no-print { display: none !important; }
+                    .scheme-block { break-inside: avoid; page-break-inside: avoid; }
+                    .scheme-block + .scheme-block { break-before: page; page-break-before: always; }
+                  }
+                `}</style>
+                {requirements.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">No published requirements found.</div>
+                ) : (
+                  requirements.map((req) => {
+                    const rankNum = (r?: string) => r ? parseInt(r.replace(/\D/g, '') || '999') : 999;
+                    const reqQuotes = quotes
+                      .filter(q => q.requirementId === req.id)
+                      .sort((a, b) => rankNum(a.rank) - rankNum(b.rank) || b.interestRate - a.interestRate);
+                    const reportDateTime = new Date().toLocaleString('en-IN', {
+                      day: '2-digit', month: 'short', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit', hour12: true
+                    });
+                    return (
+                      <div key={req.id} className="scheme-block mb-12 p-6 border border-gray-200 rounded-xl">
+                        {/* Header */}
+                        <div className="border-b-2 border-blue-700 pb-4 mb-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h2 className="text-2xl font-bold text-blue-900">Summary Details</h2>
+                              <p className="text-xs text-gray-500 mt-1">Sangli Miraj Kupwad City Municipal Corporation — Deposit Management</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500">Report Date &amp; Time</p>
+                              <p className="text-sm font-semibold text-gray-800">{reportDateTime}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Scheme Info */}
+                        <div className="mb-6 bg-blue-50 rounded-lg p-4">
+                          <div className="flex flex-wrap gap-6 items-start">
+                            <div className="flex-1 min-w-[200px]">
+                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Scheme Name</p>
+                              <p className="text-lg font-bold text-gray-900">{req.schemeName}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Amount</p>
+                              <p className="text-lg font-bold text-blue-700">{formatAmount(req.amount)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Period</p>
+                              <p className="text-lg font-bold text-gray-900">{req.depositPeriod} Months</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Type</p>
+                              <p className="text-lg font-bold text-gray-900 capitalize">{req.depositType}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Requirement ID</p>
+                              <p className="text-sm font-mono font-semibold text-gray-700">{req.id}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Quotes Table */}
+                        {reqQuotes.length === 0 ? (
+                          <div className="text-center py-6 text-gray-400 border border-dashed border-gray-200 rounded-lg">
+                            No quotes submitted for this requirement yet.
+                          </div>
+                        ) : (
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="bg-gray-800 text-white">
+                                <th className="px-4 py-3 text-left text-sm font-semibold w-14">Sr. No.</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold">Bank Name</th>
+                                <th className="px-4 py-3 text-right text-sm font-semibold w-36">Interest Rate</th>
+                                <th className="px-4 py-3 text-center text-sm font-semibold w-24">Rank</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {reqQuotes.map((quote, idx) => (
+                                <tr
+                                  key={quote.id}
+                                  className={`border-b border-gray-100 ${
+                                    quote.rank === 'L1' ? 'bg-yellow-50' :
+                                    quote.rank === 'L2' ? 'bg-gray-50' : 'bg-white'
+                                  }`}
+                                >
+                                  <td className="px-4 py-3 text-sm text-gray-600 text-center">{idx + 1}</td>
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                    {quote.bankName || quote.bankId}
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    <span className="text-xl font-bold text-blue-700">{quote.interestRate}%</span>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    {quote.rank ? (
+                                      <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${
+                                        quote.rank === 'L1' ? 'bg-yellow-400 text-yellow-900' :
+                                        quote.rank === 'L2' ? 'bg-gray-300 text-gray-800' :
+                                        'bg-orange-300 text-orange-900'
+                                      }`}>
+                                        {quote.rank}
+                                      </span>
+                                    ) : <span className="text-gray-400">—</span>}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
               </div>
             )}
 

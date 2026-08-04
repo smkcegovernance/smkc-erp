@@ -32,13 +32,15 @@ export default function AddressContactSection({
   const handleInputChange = (field: string) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     let value = e.target.value
     
-    if (field === 'mobileNumber' || field === 'pincode' || field === 'alternatePhone' || field === 'accountNumber' || field === 'bplYear') {
+    if (field === 'mobileNumber' || field === 'pincode' || field === 'alternatePhone' || field === 'accountNumber' || field === 'bplYear' || field === 'wardNumber' || field === 'prabhagSamiti') {
       value = value.replace(/\D/g, '')
       if (field === 'mobileNumber') value = value.slice(0, 10)
       if (field === 'pincode') value = value.slice(0, 6)
       if (field === 'alternatePhone') value = value.slice(0, 10)
       if (field === 'accountNumber') value = value.slice(0, 18)
       if (field === 'bplYear') value = value.slice(0, 4)
+      if (field === 'wardNumber') value = value.slice(0, 2)
+      if (field === 'prabhagSamiti') value = value.slice(0, 1)
     }
     if (field === 'ifscCode') {
       value = value.toUpperCase()
@@ -57,6 +59,17 @@ export default function AddressContactSection({
 
   const startResendCooldown = () => {
     setResendCooldown(30)
+    const timer = setInterval(() => {
+      setResendCooldown(prev => {
+        if (prev <= 1) { clearInterval(timer); return 0 }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  const startCooldown = (seconds: number) => {
+    const duration = Math.max(1, seconds)
+    setResendCooldown(duration)
     const timer = setInterval(() => {
       setResendCooldown(prev => {
         if (prev <= 1) { clearInterval(timer); return 0 }
@@ -97,6 +110,11 @@ export default function AddressContactSection({
         setOtpInput('')
         setOtpSuccess('OTP यशस्वीरित्या पाठवला गेला')
         startResendCooldown()
+      } else if (res.status === 429) {
+        const retryAfter = Number(data.retryAfter) || 60
+        setOtpSent(false)
+        setOtpError(`OTP साठी खूप प्रयत्न झाले आहेत. कृपया ${retryAfter} सेकंदांनी पुन्हा प्रयत्न करा.`)
+        startCooldown(retryAfter)
       } else {
         setOtpError(data.message || 'OTP पाठवताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.')
       }
@@ -181,25 +199,53 @@ export default function AddressContactSection({
               />
               {errors.fullAddress && <div className="invalid-feedback">{errors.fullAddress}</div>}
             </div>
-            <div className="col-md-4">
-              <label className="form-label">वॉर्ड नंबर / नाव</label>
-              <input
-                type="text"
-                className="form-control"
-                value={formData.wardNumber}
-                onChange={handleInputChange('wardNumber')}
-                placeholder="वॉर्ड नंबर / नाव"
-              />
+            <div className="col-12">
+              <label className="form-label">नागरिक महानगरपालिका क्षेत्रात राहतो/राहते का? <span className="required">*</span></label>
+              <div className="btn-group-toggle">
+                {['होय', 'नाही'].map((option) => (
+                  <div key={option} className="form-check form-check-inline custom-radio">
+                    <input
+                      className="form-check-input"
+                      type="radio"
+                      name="livesInCorporationArea"
+                      id={`corporation-area-${option}`}
+                      value={option}
+                      checked={formData.livesInCorporationArea === option}
+                      onChange={handleInputChange('livesInCorporationArea')}
+                    />
+                    <label className="form-check-label" htmlFor={`corporation-area-${option}`}>
+                      {option}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              {errors.livesInCorporationArea && <div className="invalid-feedback d-block mt-2">{errors.livesInCorporationArea}</div>}
             </div>
             <div className="col-md-4">
-              <label className="form-label">प्रभाग समिति क्र.</label>
+              <label className="form-label">वॉर्ड नंबर / नाव <span className="required">*</span></label>
               <input
                 type="text"
-                className="form-control"
+                className={`form-control ${errors.wardNumber ? 'is-invalid' : ''}`}
+                value={formData.wardNumber}
+                onChange={handleInputChange('wardNumber')}
+                placeholder="1 ते 20"
+                inputMode="numeric"
+                maxLength={2}
+              />
+              {errors.wardNumber && <div className="invalid-feedback">{errors.wardNumber}</div>}
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">प्रभाग समिति क्र. <span className="required">*</span></label>
+              <input
+                type="text"
+                className={`form-control ${errors.prabhagSamiti ? 'is-invalid' : ''}`}
                 value={formData.prabhagSamiti}
                 onChange={handleInputChange('prabhagSamiti')}
-                placeholder="प्रभाग समिति क्र."
+                placeholder="1 ते 4"
+                inputMode="numeric"
+                maxLength={1}
               />
+              {errors.prabhagSamiti && <div className="invalid-feedback">{errors.prabhagSamiti}</div>}
             </div>
             <div className="col-md-4">
               <label className="form-label">UPHC नाव व नंबर</label>

@@ -15,7 +15,7 @@ export default function BankRequirementsPage() {
   const [requirements, setRequirements] = useState<DepositRequirement[]>([]);
   const [quotesMap, setQuotesMap] = useState<Map<string, boolean>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'active' | 'expired'>('active');
+  const [filter, setFilter] = useState<'all' | 'active' | 'expired' | 'invalidated'>('active');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -34,7 +34,7 @@ export default function BankRequirementsPage() {
   const loadRequirements = async (user: User) => {
     try {
       const [reqData, allQuotes] = await Promise.all([
-        mockApi.getRequirements('bank', { status: 'published' }),
+        mockApi.getRequirements('bank'),
         mockApi.getQuotes(undefined, user.bankId)
       ]);
       setRequirements(reqData);
@@ -53,9 +53,11 @@ export default function BankRequirementsPage() {
   };
 
   const filteredRequirements = requirements.filter(req => {
+    if (req.status === 'invalidated') return filter === 'invalidated' || filter === 'all';
     const isExpired = new Date(req.validityPeriod) < new Date();
-    if (filter === 'active') return !isExpired;
+    if (filter === 'active') return req.status === 'published' && !isExpired;
     if (filter === 'expired') return isExpired;
+    if (filter === 'invalidated') return false; // already handled above
     return true;
   });
 
@@ -117,17 +119,27 @@ export default function BankRequirementsPage() {
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                Active ({requirements.filter(r => new Date(r.validityPeriod) >= new Date()).length})
+                Active ({requirements.filter(r => r.status === 'published' && new Date(r.validityPeriod) >= new Date()).length})
               </button>
               <button
                 onClick={() => setFilter('expired')}
                 className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
                   filter === 'expired'
+                    ? 'bg-yellow-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Expired ({requirements.filter(r => r.status !== 'invalidated' && new Date(r.validityPeriod) < new Date()).length})
+              </button>
+              <button
+                onClick={() => setFilter('invalidated')}
+                className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                  filter === 'invalidated'
                     ? 'bg-red-600 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                Expired ({requirements.filter(r => new Date(r.validityPeriod) < new Date()).length})
+                Invalidated ({requirements.filter(r => r.status === 'invalidated').length})
               </button>
               <button
                 onClick={() => setFilter('all')}
@@ -176,11 +188,17 @@ export default function BankRequirementsPage() {
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
                         <h3 className="text-xl font-bold text-gray-900">{req.schemeName}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          isExpired ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                        }`}>
-                          {isExpired ? 'EXPIRED' : 'ACTIVE'}
-                        </span>
+                        {req.status === 'invalidated' ? (
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                            INVALIDATED BY SMKC
+                          </span>
+                        ) : (
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            isExpired ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
+                          }`}>
+                            {isExpired ? 'EXPIRED' : 'ACTIVE'}
+                          </span>
+                        )}
                         {req.status === 'finalized' && (
                           <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
                             FINALIZED
@@ -215,19 +233,25 @@ export default function BankRequirementsPage() {
                   </div>
 
                   <div className="flex justify-end">
-                    <button
-                      onClick={() => router.push(`/bank/requirements/${req.id}`)}
-                      className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
-                        isExpired
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : quotesMap.get(req.id)
-                          ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
-                      }`}
-                      disabled={isExpired}
-                    >
-                      {isExpired ? 'Expired' : quotesMap.get(req.id) ? 'View Quote' : 'Submit Quote'}
-                    </button>
+                    {req.status === 'invalidated' ? (
+                      <span className="px-6 py-2 rounded-lg font-semibold bg-red-50 text-red-500 border border-red-200 text-sm">
+                        Invalidated by SMKC
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => router.push(`/bank/requirements/${req.id}`)}
+                        className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                          isExpired
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : quotesMap.get(req.id)
+                            ? 'bg-green-600 hover:bg-green-700 text-white'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                        disabled={isExpired}
+                      >
+                        {isExpired ? 'Expired' : quotesMap.get(req.id) ? 'View Quote' : 'Submit Quote'}
+                      </button>
+                    )}
                   </div>
                 </div>
               );

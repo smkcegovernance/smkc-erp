@@ -8,6 +8,8 @@ export interface FormData {
   motherName: string
   education: string
   aadhaarNumber: string
+  rationCardNumber: string
+  rationCardColor: string
   dob: string
   maritalStatus: string
   religion: string
@@ -16,6 +18,7 @@ export interface FormData {
 
   // Address & Contact
   fullAddress: string
+  livesInCorporationArea: string
   wardNumber: string
   prabhagSamiti: string
   uphc: string
@@ -69,7 +72,9 @@ export interface FormData {
   // Document Uploads
   udidDoc: File | null
   aadhaarDoc: File | null
+  rationCardDoc: File | null
   bankDoc: File | null
+  incomeCertificateDoc: File | null
   photoDoc: File | null
   applicantSignature: File | null
   applicantSignaturePreview: string
@@ -94,6 +99,8 @@ export const initialFormData: FormData = {
   motherName: '',
   education: '',
   aadhaarNumber: '',
+  rationCardNumber: '',
+  rationCardColor: '',
   dob: '',
   maritalStatus: '',
   religion: '',
@@ -102,6 +109,7 @@ export const initialFormData: FormData = {
 
   // Address & Contact
   fullAddress: '',
+  livesInCorporationArea: '',
   wardNumber: '',
   prabhagSamiti: '',
   uphc: '',
@@ -155,7 +163,9 @@ export const initialFormData: FormData = {
   // Document Uploads
   udidDoc: null,
   aadhaarDoc: null,
+  rationCardDoc: null,
   bankDoc: null,
+  incomeCertificateDoc: null,
   photoDoc: null,
   applicantSignature: null,
   applicantSignaturePreview: '',

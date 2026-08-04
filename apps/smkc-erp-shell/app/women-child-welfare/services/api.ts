@@ -121,7 +121,7 @@ export function listRegistrations(filters?: { status?: string; q?: string }): Pr
 
 export function updateRegistrationStatus(
   registrationNo: string,
-  status: 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED',
+  status: 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'DUPLICATE',
   remarks?: string,
   operatorUserId?: number
 ): Promise<ApiResponse> {
@@ -130,6 +130,24 @@ export function updateRegistrationStatus(
     `${BASE}/register/${encodeURIComponent(registrationNo)}/status`,
     { status, remarks: remarks ?? '', operatorUserId }
   )
+}
+
+export function getApplicationStatus(registrationNumber: string): Promise<ApiResponse> {
+  return requestJson('GET', `${BASE}/application-status/${encodeURIComponent(registrationNumber)}`)
+}
+
+export function getReport(params: {
+  reportType?: 'ALL' | 'APPROVED' | 'REJECTED' | 'DUPLICATE'
+  fromDate?: string
+  toDate?: string
+  applicationMode?: string
+}): Promise<ApiResponse> {
+  const q = new URLSearchParams()
+  if (params.reportType) q.set('reportType', params.reportType)
+  if (params.fromDate) q.set('fromDate', params.fromDate)
+  if (params.toDate) q.set('toDate', params.toDate)
+  if (params.applicationMode) q.set('applicationMode', params.applicationMode)
+  return requestJson('GET', `${BASE}/report?${q.toString()}`)
 }
 
 export function updateRegistration(id: string, formData: Partial<FormData>): Promise<ApiResponse> {

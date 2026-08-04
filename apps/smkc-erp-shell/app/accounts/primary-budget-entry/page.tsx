@@ -27,6 +27,7 @@ interface ProposalListItem {
   proposalCost: number
   enteredBy: string
   entryDate: string
+  budgetEntryStatus?: string | null
 }
 
 // â”€â”€ Financial years â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -44,6 +45,13 @@ function buildFinYears(): string[] {
 
 function fmtCurrency(n: number): string {
   return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)
+}
+
+function fmtDate(d: string | Date): string {
+  if (!d) return '—'
+  const date = typeof d === 'string' ? new Date(d) : d
+  if (isNaN(date.getTime())) return '—'
+  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 // â”€â”€ SearchableSelect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -334,6 +342,17 @@ export default function PrimaryBudgetEntryPage() {
   const [loadingProposals, setLoadingProposals] = useState(false)
   const [proposalFilter, setProposalFilter] = useState('')
   const [selectedProposal, setSelectedProposal] = useState<ProposalListItem | null>(null)
+  const [pickerPage, setPickerPage] = useState(1)
+  const [pickerTotalPages, setPickerTotalPages] = useState(0)
+  const [pickerTotal, setPickerTotal] = useState(0)
+  const PICKER_PAGE_SIZE = 20
+  type SortDir = 'asc' | 'desc'
+  const [pickerSort, setPickerSort] = useState<{ col: string; dir: SortDir }>({ col: 'date', dir: 'desc' })
+
+  function handlePickerSort(col: string) {
+    setPickerSort(prev => prev.col === col ? { col, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' })
+    setPickerPage(1)
+  }
 
   // Data
   const [departments, setDepartments] = useState<DeptOption[]>([])
@@ -387,20 +406,38 @@ export default function PrimaryBudgetEntryPage() {
 
   // â”€â”€ Fetch budget info when subhead + finYear selected â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+  // Refs so fetchBudget can read current values without being in the deps array
+  // (avoids deps-array-size mismatch errors during HMR)
+  const selectedProposalRef = useRef<ProposalListItem | null>(null)
+  const acSubheadRef = useRef(acSubhead)
+  const finYearRef = useRef(finYear)
+  const lastBudgetKeyRef = useRef('')
+  selectedProposalRef.current = selectedProposal
+  acSubheadRef.current = acSubhead
+  finYearRef.current = finYear
+
   const fetchBudget = useCallback((sub: string, fy: string) => {
-    if (!sub || !fy) { setBudgetInfo(null); return }
+    if (!sub || !fy) { setBudgetInfo(null); lastBudgetKeyRef.current = ''; return }
+    const excludeNastiNo = selectedProposalRef.current?.nastiNo ?? ''
+    const key = `${sub}|${fy}|${excludeNastiNo}`
+    if (key === lastBudgetKeyRef.current) return  // prevent double-fetch when both effects fire
+    lastBudgetKeyRef.current = key
     setLoadingBudget(true)
     setBudgetInfo(null)
-    fetch(`/api/accounts/budget-book/remaining?acSubhead=${encodeURIComponent(sub)}&finYear=${encodeURIComponent(fy)}`)
+    const params = new URLSearchParams({ acSubhead: sub, finYear: fy })
+    if (excludeNastiNo.trim()) params.set('nastiNo', excludeNastiNo.trim())
+    fetch(`/api/accounts/budget-book/remaining?${params}`)
       .then(r => r.json())
-      .then(json => {
-        if (json.success) setBudgetInfo(json.data)
-      })
+      .then(json => { if (json.success) setBudgetInfo(json.data) })
       .catch(() => {})
       .finally(() => setLoadingBudget(false))
   }, [])
 
+  // Fires when subhead or finYear changes (3 deps — same size as original, no HMR mismatch)
   useEffect(() => { fetchBudget(acSubhead, finYear) }, [acSubhead, finYear, fetchBudget])
+  // Fires when selected proposal changes (handles same-subhead / different-nastiNo scenario)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchBudget(acSubheadRef.current, finYearRef.current) }, [selectedProposal, fetchBudget])
 
   // â”€â”€ Derived â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -493,29 +530,34 @@ export default function PrimaryBudgetEntryPage() {
 
   // ── Load proposals for picker ─────────────────────────────────────────────
 
-  const loadProposals = useCallback(async (fy: string, searchTerm = '') => {
+  const loadProposals = useCallback(async (fy: string, searchTerm = '', page = 1, sort = { col: 'date', dir: 'desc' as SortDir }) => {
     setLoadingProposals(true)
     setProposals([])
     try {
-      const params = new URLSearchParams({ finYear: fy, pageSize: '50' })
+      const params = new URLSearchParams({ finYear: fy, pageNo: String(page), pageSize: String(PICKER_PAGE_SIZE), sortCol: sort.col, sortDir: sort.dir })
       if (searchTerm.trim()) params.set('search', searchTerm.trim())
       const res = await fetch(`/api/general-administration/work-proposals/list?${params}`)
       const json = await res.json()
-      if (json.success) setProposals(json.data ?? [])
+      if (json.success) {
+        setProposals(json.data ?? [])
+        setPickerTotal(json.totalCount ?? 0)
+        setPickerTotalPages(json.totalPages ?? 0)
+      }
     } catch { /* ignore */ } finally {
       setLoadingProposals(false)
     }
-  }, [])
+  }, [PICKER_PAGE_SIZE])
 
-  // Debounced search — fires on open (delay=0) and on filter change (delay=400ms)
+  // Debounced — fires on open (delay=0) and on filter/page/sort change
   useEffect(() => {
     if (!showProposalPicker) return
     const delay = proposalFilter.trim() ? 400 : 0
-    const id = setTimeout(() => loadProposals(finYear, proposalFilter), delay)
+    const id = setTimeout(() => loadProposals(finYear, proposalFilter, pickerPage, pickerSort), delay)
     return () => clearTimeout(id)
-  }, [showProposalPicker, proposalFilter, finYear, loadProposals])
+  }, [showProposalPicker, proposalFilter, finYear, pickerPage, pickerSort, loadProposals])
 
   function handleSelectProposal(p: ProposalListItem) {
+    if (p.budgetEntryStatus) return
     setSelectedProposal(p)
     setNastiNo(p.nastiNo ?? '')
     setDeptCode(String(p.deptCode))
@@ -823,23 +865,32 @@ export default function PrimaryBudgetEntryPage() {
       {/* Proposal Picker Modal */}
       {showProposalPicker && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1060, background: 'rgba(18,49,76,0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 24px 60px rgba(18,49,76,0.22)', width: '100%', maxWidth: 820, maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 24px 60px rgba(18,49,76,0.22)', width: '100%', maxWidth: 860, maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}>
             {/* Header */}
-            <div style={{ padding: '16px 22px', borderBottom: '1px solid #e0eaf2', display: 'flex', alignItems: 'center', gap: 10, background: '#f7fafd', borderRadius: '14px 14px 0 0' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #e0eaf2', display: 'flex', alignItems: 'center', gap: 10, background: '#f7fafd', borderRadius: '14px 14px 0 0' }}>
               <i className="bi bi-list-ul" style={{ color: '#1a6db5', fontSize: '1.1rem' }} />
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#18324a', flex: 1 }}>कार्य प्रस्ताव निवडा — लेखा अभिप्राय यादी ({finYear})</h3>
-              <button type="button" onClick={() => { setShowProposalPicker(false); setProposalFilter('') }} style={{ background: 'none', border: 'none', fontSize: '1.2rem', color: '#5e7388', cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>×</button>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#18324a', flex: 1 }}>
+                कार्य प्रस्ताव निवडा — लेखा अभिप्राय यादी ({finYear})
+                {pickerTotal > 0 && <span style={{ fontWeight: 400, fontSize: '0.82rem', color: '#5e7388', marginLeft: 8 }}>({pickerTotal} प्रस्ताव)</span>}
+              </h3>
+              <button type="button" onClick={() => { setShowProposalPicker(false); setProposalFilter(''); setPickerPage(1) }} style={{ background: 'none', border: 'none', fontSize: '1.2rem', color: '#5e7388', cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>×</button>
             </div>
-            {/* Search filter */}
-            <div style={{ padding: '12px 20px', borderBottom: '1px solid #f0f4f8' }}>
-              <input
-                type="text"
-                value={proposalFilter}
-                onChange={e => setProposalFilter(e.target.value)}
-                placeholder="कामाचे नाव, नस्ती क्र., लेखाशीर्ष शोधा..."
-                autoFocus
-                style={{ width: '100%', border: '1.5px solid #b6d0e8', borderRadius: 8, padding: '8px 12px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
-              />
+            {/* Search */}
+            <div style={{ padding: '10px 18px', borderBottom: '1px solid #f0f4f8', display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <i className="bi bi-search" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9aabbf', fontSize: '0.85rem', pointerEvents: 'none' }} />
+                <input
+                  type="text"
+                  value={proposalFilter}
+                  onChange={e => { setProposalFilter(e.target.value); setPickerPage(1) }}
+                  placeholder="कामाचे नाव, विभागाचे नाव, नस्ती क्र., लेखाशीर्ष शोधा..."
+                  autoFocus
+                  style={{ width: '100%', border: '1.5px solid #b6d0e8', borderRadius: 8, padding: '7px 32px 7px 32px', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box', color: '#18324a' }}
+                />
+                {proposalFilter && (
+                  <button type="button" onClick={() => { setProposalFilter(''); setPickerPage(1) }} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9aabbf', fontSize: '1rem', padding: 0, lineHeight: 1 }}>×</button>
+                )}
+              </div>
             </div>
             {/* List */}
             <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -850,52 +901,114 @@ export default function PrimaryBudgetEntryPage() {
               ) : proposals.length === 0 ? (
                 <div style={{ padding: 32, textAlign: 'center', color: '#5e7388' }}>या वर्षाचे प्रस्ताव आढळले नाहीत.</div>
               ) : (
-                <>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
-                    <thead>
-                      <tr style={{ background: '#f7fafd', position: 'sticky', top: 0 }}>
-                        <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 700, color: '#1a5276', borderBottom: '1.5px solid #e0eaf2' }}>नस्ती क्र.</th>
-                        <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 700, color: '#1a5276', borderBottom: '1.5px solid #e0eaf2' }}>प्रकार</th>
-                        <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 700, color: '#1a5276', borderBottom: '1.5px solid #e0eaf2' }}>विभाग</th>
-                        <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 700, color: '#1a5276', borderBottom: '1.5px solid #e0eaf2' }}>कामाचे नाव</th>
-                        <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 700, color: '#1a5276', borderBottom: '1.5px solid #e0eaf2' }}>लेखाशीर्ष</th>
-                        <th style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 700, color: '#1a5276', borderBottom: '1.5px solid #e0eaf2' }}>किंमत (₹)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {proposals.map((p, i) => (
-                        <tr
-                          key={p.orderNo}
-                          onClick={() => handleSelectProposal(p)}
-                          style={{ cursor: 'pointer', background: selectedProposal?.orderNo === p.orderNo ? '#e8f5e9' : i % 2 === 0 ? '#fff' : '#fafcff', transition: 'background 0.1s' }}
-                          onMouseEnter={e => { if (selectedProposal?.orderNo !== p.orderNo) (e.currentTarget as HTMLTableRowElement).style.background = '#f0f7ff' }}
-                          onMouseLeave={e => { if (selectedProposal?.orderNo !== p.orderNo) (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? '#fff' : '#fafcff' }}
-                        >
-                          <td style={{ padding: '7px 14px', borderBottom: '1px solid #f0f4f8', fontWeight: 600, color: '#1a6db5' }}>{p.nastiNo || '—'}</td>
-                          <td style={{ padding: '7px 14px', borderBottom: '1px solid #f0f4f8' }}>
-                            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.78rem', fontWeight: 700, background: p.proposalType === 'Q' ? '#e3f0fb' : p.proposalType === 'T' ? '#fdecea' : '#f0f8f0', color: p.proposalType === 'Q' ? '#1a6db5' : p.proposalType === 'T' ? '#c0392b' : '#2d6a4f' }}>
-                              {p.proposalType === 'Q' ? 'Q' : p.proposalType === 'T' ? 'T' : p.proposalType || '—'}
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f7fafd', position: 'sticky', top: 0, zIndex: 1 }}>
+                      {([
+                        { key: 'nastino',   label: 'नस्ती क्र.' },
+                        { key: 'type',      label: 'प्रकार',    sortable: false },
+                        { key: 'dept',      label: 'विभाग' },
+                        { key: 'workname',  label: 'कामाचे नाव' },
+                        { key: 'acsubhead', label: 'लेखाशीर्ष' },
+                        { key: 'cost',      label: 'किंमत (₹)', align: 'right' as const },
+                        { key: 'date',      label: 'दिनांक' },
+                      ] as { key: string; label: string; sortable?: boolean; align?: 'right' }[]).map(col => {
+                        const sortable = col.sortable !== false
+                        const isActive = pickerSort.col === col.key
+                        return (
+                          <th key={col.key}
+                            onClick={sortable ? () => handlePickerSort(col.key) : undefined}
+                            style={{
+                              padding: '9px 12px', textAlign: col.align ?? 'left',
+                              fontWeight: 700, color: isActive ? '#1a6db5' : '#1a5276',
+                              borderBottom: '1.5px solid #e0eaf2', whiteSpace: 'nowrap',
+                              cursor: sortable ? 'pointer' : 'default',
+                              userSelect: 'none', fontSize: '0.78rem',
+                              background: isActive ? '#eef5fd' : undefined,
+                            }}>
+                            {col.label}
+                            {sortable && (
+                              <span style={{ marginLeft: 4, fontSize: '0.7rem', opacity: isActive ? 1 : 0.35 }}>
+                                {isActive ? (pickerSort.dir === 'asc' ? '▲' : '▼') : '⇅'}
+                              </span>
+                            )}
+                          </th>
+                        )
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {proposals.map((p, i) => (
+                      <tr
+                        key={p.orderNo}
+                        onClick={() => handleSelectProposal(p)}
+                        style={{ cursor: p.budgetEntryStatus ? 'default' : 'pointer', background: p.budgetEntryStatus ? (i % 2 === 0 ? '#fdf6f0' : '#fdf0e8') : selectedProposal?.orderNo === p.orderNo ? '#e8f5e9' : i % 2 === 0 ? '#fff' : '#fafcff', transition: 'background 0.1s' }}
+                        onMouseEnter={e => { if (!p.budgetEntryStatus && selectedProposal?.orderNo !== p.orderNo) (e.currentTarget as HTMLTableRowElement).style.background = '#f0f7ff' }}
+                        onMouseLeave={e => { if (!p.budgetEntryStatus && selectedProposal?.orderNo !== p.orderNo) (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? '#fff' : '#fafcff' }}
+                      >
+                        <td style={{ padding: '7px 12px', borderBottom: '1px solid #f0f4f8', fontWeight: 600, color: p.budgetEntryStatus ? '#7a8a9a' : '#1a6db5', whiteSpace: 'nowrap' }}>
+                          {p.nastiNo || '—'}
+                          {p.budgetEntryStatus && (
+                            <span style={{ display: 'inline-block', marginLeft: 6, fontSize: '0.72rem', fontWeight: 600, padding: '2px 6px', borderRadius: 4, color: p.budgetEntryStatus === 'final' ? '#6d28d9' : '#c05000', background: p.budgetEntryStatus === 'final' ? '#f3e8ff' : '#fff7ed', border: '1px solid', borderColor: p.budgetEntryStatus === 'final' ? '#ddd6fe' : '#fed7aa' }}>
+                              {p.budgetEntryStatus === 'final' ? '✔ अंतिम नोंद झाली' : '✔ प्राथमिक नोंद झाली'}
                             </span>
-                          </td>
-                          <td style={{ padding: '7px 14px', borderBottom: '1px solid #f0f4f8', color: '#3d5166', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.deptName}</td>
-                          <td style={{ padding: '7px 14px', borderBottom: '1px solid #f0f4f8', color: '#18324a', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.workName}>{p.workName}</td>
-                          <td style={{ padding: '7px 14px', borderBottom: '1px solid #f0f4f8', color: '#3d5166', whiteSpace: 'nowrap' }}>{p.acSubhead}</td>
-                          <td style={{ padding: '7px 14px', borderBottom: '1px solid #f0f4f8', textAlign: 'right', fontWeight: 600, color: '#c0392b' }}>{fmtCurrency(p.proposalCost)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {proposals.length === 50 && (
-                    <div style={{ padding: '8px 16px', fontSize: '0.78rem', color: '#8a9ba8', borderTop: '1px solid #f0f4f8', background: '#fafcff', textAlign: 'center' }}>
-                      <i className="bi bi-info-circle me-1" />पहिले 50 परिणाम दाखवले — अधिक शोधण्यासाठी वर शोध घाला.
-                    </div>
-                  )}
-                </>
+                          )}
+                        </td>
+                        <td style={{ padding: '7px 12px', borderBottom: '1px solid #f0f4f8' }}>
+                          <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.78rem', fontWeight: 700, background: p.proposalType === 'Q' ? '#e3f0fb' : p.proposalType === 'T' ? '#fdecea' : '#f0f8f0', color: p.proposalType === 'Q' ? '#1a6db5' : p.proposalType === 'T' ? '#c0392b' : '#2d6a4f' }}>
+                            {p.proposalType}
+                          </span>
+                        </td>
+                        <td style={{ padding: '7px 12px', borderBottom: '1px solid #f0f4f8', color: '#3d5166', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.deptName}</td>
+                        <td style={{ padding: '7px 12px', borderBottom: '1px solid #f0f4f8', color: '#18324a', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.workName}>{p.workName}</td>
+                        <td style={{ padding: '7px 12px', borderBottom: '1px solid #f0f4f8', color: '#3d5166', whiteSpace: 'nowrap' }}>{p.acSubhead}</td>
+                        <td style={{ padding: '7px 12px', borderBottom: '1px solid #f0f4f8', textAlign: 'right', fontWeight: 600, color: '#c0392b', whiteSpace: 'nowrap' }}>{fmtCurrency(p.proposalCost)}</td>
+                        <td style={{ padding: '7px 12px', borderBottom: '1px solid #f0f4f8', color: '#9aabbf', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>{fmtDate(p.entryDate)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
-            {/* Footer */}
-            <div style={{ padding: '10px 20px', borderTop: '1px solid #f0f4f8', display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => { setShowProposalPicker(false); setProposalFilter('') }} style={{ padding: '7px 20px', borderRadius: 7, border: '1.5px solid #b0bec5', background: '#fff', color: '#5e7388', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>बंद करा</button>
+            {/* Pagination + footer */}
+            <div style={{ padding: '10px 18px', borderTop: '1px solid #f0f4f8', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', background: '#fafcff', borderRadius: '0 0 14px 14px' }}>
+              <div style={{ fontSize: '0.78rem', color: '#5e7388' }}>
+                {pickerTotal > 0 && `पान ${pickerPage} / ${pickerTotalPages} — एकूण ${pickerTotal}`}
+              </div>
+              {pickerTotalPages > 1 && (
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <button type="button" disabled={pickerPage <= 1} onClick={() => setPickerPage(1)}
+                    style={{ padding: '4px 10px', borderRadius: 6, border: '1.5px solid #d5e1ea', background: '#fff', color: '#1a5276', fontWeight: 700, fontSize: '0.78rem', cursor: pickerPage <= 1 ? 'not-allowed' : 'pointer', opacity: pickerPage <= 1 ? 0.4 : 1 }}>
+                    <i className="bi bi-chevron-double-left" />
+                  </button>
+                  <button type="button" disabled={pickerPage <= 1} onClick={() => setPickerPage(p => p - 1)}
+                    style={{ padding: '4px 10px', borderRadius: 6, border: '1.5px solid #d5e1ea', background: '#fff', color: '#1a5276', fontWeight: 700, fontSize: '0.78rem', cursor: pickerPage <= 1 ? 'not-allowed' : 'pointer', opacity: pickerPage <= 1 ? 0.4 : 1 }}>
+                    <i className="bi bi-chevron-left" />
+                  </button>
+                  {Array.from({ length: pickerTotalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === pickerTotalPages || Math.abs(p - pickerPage) <= 1)
+                    .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis')
+                      acc.push(p); return acc
+                    }, [])
+                    .map((item, idx) => item === 'ellipsis'
+                      ? <span key={`e${idx}`} style={{ padding: '0 4px', color: '#9aabbf', fontSize: '0.78rem' }}>…</span>
+                      : <button key={item} type="button" onClick={() => setPickerPage(item as number)}
+                          style={{ padding: '4px 9px', borderRadius: 6, border: '1.5px solid', borderColor: pickerPage === item ? '#1a6db5' : '#d5e1ea', background: pickerPage === item ? '#1a6db5' : '#fff', color: pickerPage === item ? '#fff' : '#1a5276', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}>
+                          {item}
+                        </button>
+                    )}
+                  <button type="button" disabled={pickerPage >= pickerTotalPages} onClick={() => setPickerPage(p => p + 1)}
+                    style={{ padding: '4px 10px', borderRadius: 6, border: '1.5px solid #d5e1ea', background: '#fff', color: '#1a5276', fontWeight: 700, fontSize: '0.78rem', cursor: pickerPage >= pickerTotalPages ? 'not-allowed' : 'pointer', opacity: pickerPage >= pickerTotalPages ? 0.4 : 1 }}>
+                    <i className="bi bi-chevron-right" />
+                  </button>
+                  <button type="button" disabled={pickerPage >= pickerTotalPages} onClick={() => setPickerPage(pickerTotalPages)}
+                    style={{ padding: '4px 10px', borderRadius: 6, border: '1.5px solid #d5e1ea', background: '#fff', color: '#1a5276', fontWeight: 700, fontSize: '0.78rem', cursor: pickerPage >= pickerTotalPages ? 'not-allowed' : 'pointer', opacity: pickerPage >= pickerTotalPages ? 0.4 : 1 }}>
+                    <i className="bi bi-chevron-double-right" />
+                  </button>
+                </div>
+              )}
+              <button type="button" onClick={() => { setShowProposalPicker(false); setProposalFilter(''); setPickerPage(1) }} style={{ padding: '6px 18px', borderRadius: 7, border: '1.5px solid #b0bec5', background: '#fff', color: '#5e7388', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>बंद करा</button>
             </div>
           </div>
         </div>

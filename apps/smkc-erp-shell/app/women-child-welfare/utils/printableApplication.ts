@@ -5,7 +5,9 @@ const STORAGE_PREFIX = 'wcwc-printable-application:'
 const documentLabels: Record<string, string> = {
   udidDoc: 'UDID दस्तऐवज',
   aadhaarDoc: 'आधार कार्ड प्रत',
+  rationCardDoc: 'रेशन कार्ड प्रत',
   bankDoc: 'बँक पासबुक / खाते तपशील',
+  incomeCertificateDoc: 'उत्पन्न दाखला',
   photoDoc: 'फोटो प्रत',
   applicantSignature: 'अर्जदार सही',
   surveyorSignature: 'सर्वेक्षक सही',
@@ -31,12 +33,15 @@ export interface PrintableFormSnapshot {
   motherName: string
   education: string
   aadhaarNumber: string
+  rationCardNumber: string
+  rationCardColor: string
   dob: string
   maritalStatus: string
   religion: string
   caste: string
   familyRelation: string
   fullAddress: string
+  livesInCorporationArea: string
   wardNumber: string
   prabhagSamiti: string
   uphc: string
@@ -121,12 +126,15 @@ export function buildPrintableApplicationSnapshot(
       motherName: formData.motherName,
       education: formData.education,
       aadhaarNumber: formData.aadhaarNumber,
+      rationCardNumber: formData.rationCardNumber,
+      rationCardColor: formData.rationCardColor,
       dob: formData.dob,
       maritalStatus: formData.maritalStatus,
       religion: formData.religion,
       caste: formData.caste,
       familyRelation: formData.familyRelation,
       fullAddress: formData.fullAddress,
+      livesInCorporationArea: formData.livesInCorporationArea,
       wardNumber: formData.wardNumber,
       prabhagSamiti: formData.prabhagSamiti,
       uphc: formData.uphc,
@@ -211,7 +219,7 @@ export function getPrintableApplicationSnapshot(registrationNumber: string): Pri
   }
 }
 
-export function getPrintableApplicationUrl(registrationNumber: string, autoPrint = false) {
-  const params = autoPrint ? '?autoprint=1' : ''
+export function getPrintableApplicationUrl(registrationNumber: string, mode: 'print' | 'download' = 'print') {
+  const params = mode === 'download' ? '?download=1' : '?autoprint=1'
   return `/women-child-welfare/disability-registration/print/${encodeURIComponent(registrationNumber)}${params}`
 }

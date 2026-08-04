@@ -30,15 +30,19 @@ export async function POST(request: NextRequest) {
       request.headers.get('x-real-ip') ??
       null
 
-    const upstreamUrl = `${SMKC_API_BASE}/api/erp-auth/login`
+    const upstreamUrl = `${SMKC_API_BASE}/api/auth/login`
     console.log(`[ERP-AUTH/LOGIN] → POST ${upstreamUrl} (userId=${userId}, ip=${ipAddr ?? 'unknown'})`)
+
+    const requestBody = JSON.stringify({ userId, password, ipAddr })
 
     let upstream: Response
     try {
       upstream = await fetchWithTimeout(upstreamUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, password, ipAddr }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: requestBody,
       })
     } catch (fetchErr) {
       const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr)

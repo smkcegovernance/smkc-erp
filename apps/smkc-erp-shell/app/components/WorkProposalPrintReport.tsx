@@ -6,7 +6,7 @@ import { useEffect } from 'react'
 
 export interface WorkProposalPrintData {
   orderNo: number
-  proposalType: string     // 'Q' = दरपत्रक, 'T' = निविदा
+  proposalType: string     // 'Q' = दरपत्रक, 'T' = निविदा, 'O' = इतर प्रस्ताव
   finYear: string
   deptName: string
   nastiType: string
@@ -49,6 +49,8 @@ export interface WorkProposalPrintData {
   maintenancePeriod: string
   prevMaintenance: string
   competentOfficer: string
+  tenderDuration?: string
+  newspaperLevel?: string
 
   remarks: string
   enteredBy: string
@@ -125,8 +127,11 @@ interface Props {
 }
 
 export default function WorkProposalPrintReport({ data, onClose }: Props) {
-  const isTender = data.proposalType === 'T'
-  const reportTitle = isTender ? 'निविदा मागविण्यास मान्यता' : 'दरपत्रक मागविण्यास मान्यता'
+  const reportTitle = data.proposalType === 'T'
+    ? 'निविदा मागविण्यास मान्यता'
+    : data.proposalType === 'O'
+      ? 'प्रस्तावित खर्चास मान्यता'
+      : 'दरपत्रक मागविण्यास मान्यता'
   const nastiDisplay = data.nastiNo
     ? `${data.finYear}/${data.deptName}/${data.nastiNo}`
     : '—'
@@ -298,13 +303,13 @@ export default function WorkProposalPrintReport({ data, onClose }: Props) {
               </tr>
               <tr>
                 <td style={TD_LABEL}>अपेक्षित खर्चानुसार निविदा कालावधी</td>
-                <td style={{ ...TD_VALUE, borderRight: 'none' }}>{data.maintenancePeriod ? `${data.maintenancePeriod} वर्षे` : '—'}</td>
+                <td style={{ ...TD_VALUE, borderRight: 'none' }}>{data.tenderDuration || '—'}</td>
                 <td style={{ border: '1px solid #555', borderLeft: 'none' }} />
               </tr>
               <tr>
                 <td style={TD_LABEL}>निविदा प्रसिद्धीकरणासाठी वर्तमानपत्रांचा स्तर</td>
                 <td style={{ ...TD_VALUE, borderRight: 'none' }}>
-                  {data.proposalCost > 5000000 ? 'राष्ट्रीयस्तर' : 'स्थानिकस्तर'}
+                  {data.newspaperLevel || '—'}
                 </td>
                 <td style={{ border: '1px solid #555', borderLeft: 'none' }} />
               </tr>

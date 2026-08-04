@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import DeptSidebar from '@/app/components/DeptSidebar'
 import WorkProposalPrintReport, { type WorkProposalPrintData } from '@/app/components/WorkProposalPrintReport'
@@ -71,7 +71,7 @@ export default function WorkProposalsListPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const [finYear, setFinYear] = useState(FIN_YEARS[0] ?? '2025-2026')
-  const [typeFilter, setTypeFilter] = useState<'all' | 'Q' | 'T'>('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'Q' | 'T' | 'O'>('all')
   const [search, setSearch] = useState('')
 
   const [proposals, setProposals] = useState<WorkProposalListItem[]>([])
@@ -81,14 +81,28 @@ export default function WorkProposalsListPage() {
   const [printData, setPrintData] = useState<WorkProposalPrintData | null>(null)
   const [loadingPrint, setLoadingPrint] = useState<number | null>(null)
 
+  // Sort + Pagination
+  const PAGE_SIZE = 20
+  const [page, setPage] = useState(1)
+  type SortDir = 'asc' | 'desc'
+  const [sortCol, setSortCol] = useState<string>('date')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+
+  function handleSort(col: string) {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir('asc') }
+    setPage(1)
+  }
+
   // ── Load list ────────────────────────────────────────────────────────────
 
   const loadList = useCallback(async (fy: string) => {
     setLoading(true)
     setError('')
+    setPage(1)
     try {
       const uid = user?.userId ?? ''
-      const params = new URLSearchParams({ finYear: fy })
+      const params = new URLSearchParams({ finYear: fy, pageSize: '500', pageNo: '1' })
       if (uid) params.set('userId', uid)
       const res = await fetch(`/api/general-administration/work-proposals/list?${params}`)
       const json = await res.json()
@@ -154,6 +168,8 @@ export default function WorkProposalsListPage() {
           maintenancePeriod: d.maintenancePeriod,
           prevMaintenance: d.prevMaintenance,
           competentOfficer: d.competentOfficer,
+          tenderDuration: d.tenderDuration ?? '',
+          newspaperLevel: d.newspaperLevel ?? '',
           remarks: d.remarks,
           enteredBy: d.enteredBy,
           entryDate: d.entryDate,
@@ -168,9 +184,9 @@ export default function WorkProposalsListPage() {
     }
   }
 
-  // ── Filtered data ────────────────────────────────────────────────────────
+  // ── Filtered + sorted + paginated ─────────────────────────────────────────
 
-  const filtered = proposals.filter(p => {
+  const filtered = useMemo(() => proposals.filter(p => {
     if (typeFilter !== 'all' && p.proposalType !== typeFilter) return false
     if (search.trim()) {
       const q = search.toLowerCase()
@@ -183,7 +199,34 @@ export default function WorkProposalsListPage() {
       )
     }
     return true
-  })
+  }), [proposals, typeFilter, search])
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered]
+    arr.sort((a, b) => {
+      let va: string | number, vb: string | number
+      switch (sortCol) {
+        case 'type':     va = a.proposalType;               vb = b.proposalType;               break
+        case 'orderNo':  va = a.orderNo;                    vb = b.orderNo;                    break
+        case 'workName': va = (a.workName ?? '').toLowerCase(); vb = (b.workName ?? '').toLowerCase(); break
+        case 'deptName': va = (a.deptName ?? '').toLowerCase(); vb = (b.deptName ?? '').toLowerCase(); break
+        case 'acSubhead':va = a.acSubhead ?? '';             vb = b.acSubhead ?? '';            break
+        case 'cost':     va = a.proposalCost;               vb = b.proposalCost;               break
+        case 'date':     va = new Date(a.entryDate).getTime(); vb = new Date(b.entryDate).getTime(); break
+        default:         va = a.orderNo;                    vb = b.orderNo
+      }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1
+      if (va > vb) return sortDir === 'asc' ? 1 : -1
+      return 0
+    })
+    return arr
+  }, [filtered, sortCol, sortDir])
+
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE)
+  const paginated  = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  // Reset page when filter/sort changes
+  useEffect(() => { setPage(1) }, [typeFilter, search, sortCol, sortDir])
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -227,10 +270,11 @@ export default function WorkProposalsListPage() {
           </div>
           <div>
             <label style={LABEL_STYLE}>प्रस्ताव प्रकार</label>
-            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as 'all' | 'Q' | 'T')} style={SELECT_STYLE}>
+            <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value as 'all' | 'Q' | 'T' | 'O'); setPage(1) }} style={SELECT_STYLE}>
               <option value="all">सर्व</option>
-              <option value="Q">दरपत्रक (₹10 लाखांपर्यंत)</option>
-              <option value="T">निविदा (₹10 लाखांवर)</option>
+              <option value="Q">दरपत्रक (₹1 लाखापर्यंत)</option>
+              <option value="T">निविदा (₹1 लाखावरील)</option>
+              <option value="O">इतर प्रस्ताव</option>
             </select>
           </div>
           <div style={{ flex: 1, minWidth: 200 }}>
@@ -256,11 +300,12 @@ export default function WorkProposalsListPage() {
         </div>
 
         {/* Summary stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
           {[
-            { label: 'एकूण प्रस्ताव', value: proposals.length, color: '#2d6a4f', bg: '#d8f3dc', icon: 'bi-file-earmark-text-fill' },
-            { label: 'दरपत्रक प्रस्ताव', value: proposals.filter(p => p.proposalType === 'Q').length, color: '#c0392b', bg: '#fff0ee', icon: 'bi-file-earmark-plus-fill' },
-            { label: 'निविदा प्रस्ताव', value: proposals.filter(p => p.proposalType === 'T').length, color: '#1a6db5', bg: '#e8f3ff', icon: 'bi-file-earmark-arrow-up-fill' },
+            { label: 'एकूण प्रस्ताव',   value: proposals.length,                                              color: '#2d6a4f', bg: '#d8f3dc', icon: 'bi-file-earmark-text-fill' },
+            { label: 'दरपत्रक प्रस्ताव', value: proposals.filter(p => p.proposalType === 'Q').length,          color: '#c0392b', bg: '#fff0ee', icon: 'bi-file-earmark-plus-fill' },
+            { label: 'निविदा प्रस्ताव',  value: proposals.filter(p => p.proposalType === 'T').length,          color: '#1a6db5', bg: '#e8f3ff', icon: 'bi-file-earmark-arrow-up-fill' },
+            { label: 'इतर प्रस्ताव',    value: proposals.filter(p => p.proposalType === 'O').length,          color: '#7d5a00', bg: '#fff8e1', icon: 'bi-file-earmark-diff-fill' },
           ].map(stat => (
             <div key={stat.label} style={{ background: stat.bg, borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 42, height: 42, borderRadius: 10, background: stat.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -295,19 +340,48 @@ export default function WorkProposalsListPage() {
               </div>
             </div>
           ) : (
+            <>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ background: '#f7fafd', borderBottom: '2px solid #e0eaf2' }}>
-                    {['क्र.', 'प्रकार', 'क्रमांक', 'कामगिरीचे नाव', 'विभाग', 'लेखाशीर्ष', 'प्रस्तावित खर्च', 'दिनांक', 'कृती'].map(h => (
-                      <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 700, color: '#3d4f60', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>{h}</th>
-                    ))}
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 700, color: '#3d4f60', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>क्र.</th>
+                    {([
+                      { key: 'type',     label: 'प्रकार' },
+                      { key: 'orderNo',  label: 'क्रमांक' },
+                      { key: 'workName', label: 'कामगिरीचे नाव' },
+                      { key: 'deptName', label: 'विभाग' },
+                      { key: 'acSubhead',label: 'लेखाशीर्ष' },
+                      { key: 'cost',     label: 'प्रस्तावित खर्च', align: 'right' as const },
+                      { key: 'date',     label: 'दिनांक' },
+                    ] as { key: string; label: string; align?: 'right' }[]).map(col => {
+                      const active = sortCol === col.key
+                      return (
+                        <th key={col.key}
+                          onClick={() => handleSort(col.key)}
+                          style={{
+                            padding: '12px 14px', textAlign: col.align ?? 'left',
+                            fontWeight: 700, color: active ? '#2d6a4f' : '#3d4f60',
+                            whiteSpace: 'nowrap', fontSize: '0.8rem',
+                            cursor: 'pointer', userSelect: 'none',
+                            background: active ? '#f0f8f4' : undefined,
+                          }}>
+                          {col.label}
+                          <span style={{ marginLeft: 4, fontSize: '0.68rem', opacity: active ? 1 : 0.3 }}>
+                            {active ? (sortDir === 'asc' ? '▲' : '▼') : '⇅'}
+                          </span>
+                        </th>
+                      )
+                    })}
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 700, color: '#3d4f60', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>कृती</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((p, idx) => (
+                  {paginated.map((p, idx) => {
+                    const globalIdx = (page - 1) * PAGE_SIZE + idx
+                    return (
                     <tr key={`${p.proposalType}-${p.orderNo}-${idx}`} style={{ borderBottom: '1px solid #f0f4f8', background: idx % 2 === 0 ? '#fff' : '#fafcfe' }}>
-                      <td style={{ padding: '11px 14px', color: '#9aabbf', fontSize: '0.78rem' }}>{idx + 1}</td>
+                      <td style={{ padding: '11px 14px', color: '#9aabbf', fontSize: '0.78rem' }}>{globalIdx + 1}</td>
                       <td style={{ padding: '11px 14px' }}>
                         <span style={{
                           display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: '0.76rem', fontWeight: 700,
@@ -379,17 +453,59 @@ export default function WorkProposalsListPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div style={{ padding: '14px 20px', borderTop: '1px solid #f0f4f8', background: '#fafcff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                <div style={{ fontSize: '0.8rem', color: '#5e7388' }}>
+                  पान {page} / {totalPages} — एकूण {sorted.length} प्रस्ताव
+                </div>
+                <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                  <button type="button" disabled={page <= 1} onClick={() => setPage(1)}
+                    style={{ padding: '5px 11px', borderRadius: 7, border: '1.5px solid #d5e1ea', background: '#fff', color: '#2d6a4f', fontWeight: 700, fontSize: '0.8rem', cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.4 : 1 }}>
+                    <i className="bi bi-chevron-double-left" />
+                  </button>
+                  <button type="button" disabled={page <= 1} onClick={() => setPage(p => p - 1)}
+                    style={{ padding: '5px 11px', borderRadius: 7, border: '1.5px solid #d5e1ea', background: '#fff', color: '#2d6a4f', fontWeight: 700, fontSize: '0.8rem', cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.4 : 1 }}>
+                    <i className="bi bi-chevron-left" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                    .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis')
+                      acc.push(p); return acc
+                    }, [])
+                    .map((item, idx) => item === 'ellipsis'
+                      ? <span key={`e${idx}`} style={{ padding: '0 4px', color: '#9aabbf', fontSize: '0.8rem' }}>…</span>
+                      : <button key={item} type="button" onClick={() => setPage(item as number)}
+                          style={{ padding: '5px 10px', borderRadius: 7, border: '1.5px solid', borderColor: page === item ? '#2d6a4f' : '#d5e1ea', background: page === item ? '#2d6a4f' : '#fff', color: page === item ? '#fff' : '#2d6a4f', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', minWidth: 34 }}>
+                          {item}
+                        </button>
+                    )}
+                  <button type="button" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
+                    style={{ padding: '5px 11px', borderRadius: 7, border: '1.5px solid #d5e1ea', background: '#fff', color: '#2d6a4f', fontWeight: 700, fontSize: '0.8rem', cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.4 : 1 }}>
+                    <i className="bi bi-chevron-right" />
+                  </button>
+                  <button type="button" disabled={page >= totalPages} onClick={() => setPage(totalPages)}
+                    style={{ padding: '5px 11px', borderRadius: 7, border: '1.5px solid #d5e1ea', background: '#fff', color: '#2d6a4f', fontWeight: 700, fontSize: '0.8rem', cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.4 : 1 }}>
+                    <i className="bi bi-chevron-double-right" />
+                  </button>
+                </div>
+              </div>
+            )}
+            </>
           )}
         </div>
 
         {/* Results count */}
-        {!loading && !error && filtered.length > 0 && (
+        {!loading && !error && sorted.length > 0 && (
           <div style={{ marginTop: 12, fontSize: '0.8rem', color: '#9aabbf', textAlign: 'right' }}>
-            {filtered.length} पैकी {filtered.length} प्रस्ताव दर्शवित आहे
+            {sorted.length} पैकी {Math.min(page * PAGE_SIZE, sorted.length)} प्रस्ताव दर्शवित आहे
             {search && ` (शोध: "${search}")`}
           </div>
         )}

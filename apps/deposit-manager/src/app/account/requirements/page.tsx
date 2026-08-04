@@ -81,13 +81,14 @@ export default function RequirementsListPage() {
   const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
 
   const getStatusBadge = (status: string) => {
-    const badges = {
+    const badges: Record<string, string> = {
       draft: 'bg-gray-100 text-gray-700',
       published: 'bg-green-100 text-green-700',
-      expired: 'bg-red-100 text-red-700',
-      finalized: 'bg-blue-100 text-blue-700'
+      expired: 'bg-yellow-100 text-yellow-700',
+      finalized: 'bg-blue-100 text-blue-700',
+      invalidated: 'bg-red-100 text-red-700',
     };
-    return badges[status as keyof typeof badges] || badges.draft;
+    return badges[status] || badges.draft;
   };
 
   if (!user) {
@@ -131,6 +132,7 @@ export default function RequirementsListPage() {
                 <option value="published">Published</option>
                 <option value="finalized">Finalized</option>
                 <option value="expired">Expired</option>
+                <option value="invalidated">Invalidated</option>
               </select>
             </div>
 

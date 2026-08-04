@@ -384,6 +384,9 @@ export default function BudgetCapPage() {
   const [gridSearch, setGridSearch] = useState('')
   const [gridPage, setGridPage] = useState(1)
   const [gridPageSize, setGridPageSize] = useState(25)
+  type SortKey = 'acSubhead' | 'acSubheadName' | 'totalBudget' | 'capPercentage' | 'capAmount' | 'effectiveBudget' | 'lastChange'
+  const [sortKey, setSortKey] = useState<SortKey>('lastChange')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   const filteredCaps = capList.filter(c => {
     if (!gridSearch.trim()) return true
@@ -398,13 +401,35 @@ export default function BudgetCapPage() {
     )
   })
 
-  const totalPages = Math.max(1, Math.ceil(filteredCaps.length / gridPageSize))
+  const sortedCaps = [...filteredCaps].sort((a, b) => {
+    let av: string | number, bv: string | number
+    switch (sortKey) {
+      case 'acSubhead':       av = a.acSubhead;                bv = b.acSubhead;                break
+      case 'acSubheadName':   av = a.acSubheadName ?? '';      bv = b.acSubheadName ?? '';      break
+      case 'totalBudget':     av = a.totalBudget;              bv = b.totalBudget;              break
+      case 'capPercentage':   av = a.capPercentage ?? -1;      bv = b.capPercentage ?? -1;      break
+      case 'capAmount':       av = a.capAmount ?? -1;          bv = b.capAmount ?? -1;          break
+      case 'effectiveBudget': av = a.effectiveBudget;          bv = b.effectiveBudget;          break
+      case 'lastChange':      av = a.lupDate ?? a.entDt ?? ''; bv = b.lupDate ?? b.entDt ?? ''; break
+      default:                av = '';                         bv = ''
+    }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1
+    if (av > bv) return sortDir === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const totalPages = Math.max(1, Math.ceil(sortedCaps.length / gridPageSize))
   const safePage   = Math.min(gridPage, totalPages)
-  const pagedCaps  = filteredCaps.slice((safePage - 1) * gridPageSize, safePage * gridPageSize)
+  const pagedCaps  = sortedCaps.slice((safePage - 1) * gridPageSize, safePage * gridPageSize)
 
   // reset to page 1 on search or page-size change
   function handleGridSearch(v: string) { setGridSearch(v); setGridPage(1) }
   function handleGridPageSize(n: number) { setGridPageSize(n); setGridPage(1) }
+  function handleSort(key: SortKey) {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+    setGridPage(1)
+  }
 
   function PaginationBar() {
     const pages: (number | '…')[] = []
@@ -652,9 +677,24 @@ export default function BudgetCapPage() {
                   <thead>
                     <tr style={{ background: '#f0f7ff' }}>
                       <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, color: '#0d6efd', borderBottom: '2px solid #dee2e6', whiteSpace: 'nowrap', width: 40 }}>#</th>
-                      {['बजेट कोड', 'नाव', 'एकूण बजेट', 'मर्यादा %', 'मर्यादा रक्कम', 'उपलब्ध रक्कम', 'शेवटचा बदल', 'क्रिया'].map(h => (
-                        <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: '#0d6efd', borderBottom: '2px solid #dee2e6', whiteSpace: 'nowrap' }}>{h}</th>
+                      {([
+                        ['बजेट कोड', 'acSubhead'],
+                        ['नाव', 'acSubheadName'],
+                        ['एकूण बजेट', 'totalBudget'],
+                        ['मर्यादा %', 'capPercentage'],
+                        ['मर्यादा रक्कम', 'capAmount'],
+                        ['उपलब्ध रक्कम', 'effectiveBudget'],
+                        ['शेवटचा बदल', 'lastChange'],
+                      ] as [string, SortKey][]).map(([label, key]) => (
+                        <th key={key} onClick={() => handleSort(key)}
+                          style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: sortKey === key ? '#0d6efd' : '#495057', borderBottom: '2px solid #dee2e6', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}>
+                          {label}
+                          <span style={{ marginLeft: 4, fontSize: 10, color: sortKey === key ? '#0d6efd' : '#adb5bd' }}>
+                            {sortKey === key ? (sortDir === 'asc' ? '▲' : '▼') : '⇅'}
+                          </span>
+                        </th>
                       ))}
+                      <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: '#495057', borderBottom: '2px solid #dee2e6', whiteSpace: 'nowrap' }}>क्रिया</th>
                     </tr>
                   </thead>
                   <tbody>

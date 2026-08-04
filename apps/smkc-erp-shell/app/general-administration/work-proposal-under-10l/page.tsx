@@ -10,7 +10,7 @@ import { useLanguage } from '@/app/lib/i18n/LanguageContext'
 
 interface DeptOption { deptCode: number; deptName: string; deptNameLL: string; deptNameLLUnicode: string }
 interface SubheadOption { acSubhead: string; acSubheadName: string; acSubheadNameLL: string; acSubheadNameLLUnicode: string }
-interface BudgetInfo { acSubhead: string; finYear: string; totalBudget: number; effectiveBudget: number; actualExpenditure: number; remainingBudget: number; capPercentage?: number | null; capAmount?: number | null }
+interface BudgetInfo { acSubhead: string; finYear: string; totalBudget: number; effectiveBudget: number; rawCapBudget?: number; actualExpenditure: number; remainingBudget: number; capPercentage?: number | null; capAmount?: number | null }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -682,7 +682,7 @@ export default function WorkProposalUnder10LPage() {
                   </div>
                   <div style={{ background: (budgetInfo.capPercentage != null || budgetInfo.capAmount != null) ? '#fff3cd' : '#e8f3ff', borderRadius: 10, padding: '12px 16px', border: '1.5px solid #ffc10740' }}>
                     <div style={{ fontSize: '0.78rem', color: '#5e7388', marginBottom: 4 }}>उपलब्ध (मर्यादित)</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#856404' }}>₹ {fmtCurrency(budgetInfo.effectiveBudget)}</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#856404' }}>₹ {fmtCurrency(budgetInfo.rawCapBudget ?? budgetInfo.effectiveBudget)}</div>
                   </div>
                   <div style={{ background: '#fffbea', borderRadius: 10, padding: '12px 16px', border: '1.5px solid #d9770620' }}>
                     <div style={{ fontSize: '0.78rem', color: '#5e7388', marginBottom: 4 }}>वचनबद्ध खर्च</div>

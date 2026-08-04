@@ -29,7 +29,10 @@ export interface PrintData {
 function fmtDatetime(isoStr: string): string {
   if (!isoStr) return '—'
   try {
-    const d = new Date(isoStr)
+    // Strip trailing 'Z' if present — Oracle SYSDATE returns IST time, not UTC.
+    // The backend may append 'Z' as a literal format character which would
+    // cause browsers to misinterpret IST as UTC (+5:30 shift).
+    const d = new Date(isoStr.endsWith('Z') ? isoStr.slice(0, -1) : isoStr)
     const day = String(d.getDate()).padStart(2, '0')
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

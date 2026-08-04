@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 // Reuse the dept version's CSS module - same A4 layout
 import styles from '../../../../women-child-welfare/disability-registration/print/[registrationNumber]/page.module.css'
 import {
@@ -37,6 +37,8 @@ export default function PublicPrintableApplicationPage() {
   const searchParams = useSearchParams()
   const [snapshot, setSnapshot] = useState<PrintableApplicationSnapshot | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const registrationNumber = useMemo(() => {
     const value = params?.registrationNumber
@@ -54,6 +56,28 @@ export default function PublicPrintableApplicationPage() {
     const timer = window.setTimeout(() => window.print(), 350)
     return () => window.clearTimeout(timer)
   }, [searchParams, snapshot])
+
+  async function handleDownloadPdf() {
+    if (!contentRef.current || !snapshot) return
+
+    setIsDownloading(true)
+    try {
+      const html2pdf = (await import('html2pdf.js')).default as any
+      await html2pdf()
+        .set({
+          filename: `wcwc-application-${snapshot.registrationNumber}.pdf`,
+          margin: 0,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'] },
+        })
+        .from(contentRef.current)
+        .save()
+    } finally {
+      setIsDownloading(false)
+    }
+  }
 
   if (loading) {
     return <div className={styles.loading}>A4 print copy तयार केली जात आहे...</div>
@@ -88,6 +112,9 @@ export default function PublicPrintableApplicationPage() {
           <p>{snapshot.registrationNumber} · Browser print मध्ये Save as PDF वापरून soft copy जतन करता येईल.</p>
         </div>
         <div className={styles.toolbarActions}>
+          <button type="button" className={styles.toolbarButton} onClick={handleDownloadPdf} disabled={isDownloading}>
+            {isDownloading ? 'Downloading...' : 'Download PDF'}
+          </button>
           <button type="button" className={styles.toolbarButton} onClick={() => window.print()}>
             Print / Save PDF
           </button>
@@ -97,7 +124,7 @@ export default function PublicPrintableApplicationPage() {
         </div>
       </div>
 
-      <div className={styles.pages}>
+      <div ref={contentRef} className={styles.pages}>
         <section className={styles.page}>
           <header className={styles.pageHeader}>
             <div>
@@ -126,6 +153,8 @@ export default function PublicPrintableApplicationPage() {
                 <DetailField label="आईचे नाव" value={formData.motherName} />
                 <DetailField label="शिक्षण" value={formData.education} />
                 <DetailField label="आधार क्रमांक" value={formData.aadhaarNumber} />
+                <DetailField label="रेशन कार्ड क्रमांक" value={formData.rationCardNumber} />
+                <DetailField label="रेशन कार्ड रंग" value={formData.rationCardColor} />
                 <DetailField label="जन्मतारीख" value={formatDate(formData.dob)} />
                 <DetailField label="वैवाहिक स्थिती" value={formData.maritalStatus} />
                 <DetailField label="धर्म" value={formData.religion} />
@@ -153,6 +182,7 @@ export default function PublicPrintableApplicationPage() {
           <div className={styles.pageBody}>
             <div className={styles.sectionGrid}>
               <DetailField label="पूर्ण पत्ता" value={formData.fullAddress} wide />
+              <DetailField label="महानगरपालिका क्षेत्रात राहतो/राहते का" value={formData.livesInCorporationArea} wide />
               <DetailField label="वार्ड क्रमांक" value={formData.wardNumber} />
               <DetailField label="प्रभाग समिती" value={formData.prabhagSamiti} />
               <DetailField label="UPHC" value={formData.uphc} />

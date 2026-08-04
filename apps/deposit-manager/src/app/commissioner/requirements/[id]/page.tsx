@@ -99,7 +99,7 @@ export default function CommissionerRequirementDetailPage() {
     if (!quote.consentFileName) return;
     try {
       setDownloadingId(quote.id);
-      const url = `/api/proxy/consent/download?requirementId=${encodeURIComponent(quote.requirementId)}&bankId=${encodeURIComponent(quote.bankId)}&fileName=${encodeURIComponent(quote.consentFileName)}`;
+      const url = `/depositmanager/api/proxy/consent/download?requirementId=${encodeURIComponent(quote.requirementId)}&bankId=${encodeURIComponent(quote.bankId)}&fileName=${encodeURIComponent(quote.consentFileName)}`;
       const res = await fetch(url);
       const ct = res.headers.get('content-type') || '';
       if (!res.ok) {

@@ -8,6 +8,7 @@ interface DocumentsBenefitsSectionProps {
   updateFormData: (field: string, value: any) => void
   setFieldError: (field: string, message?: string) => void
   errors: Record<string, string>
+  existingDocCodes?: Set<string>
   onPrev: () => void
   onSubmit: () => void
   isSubmitting: boolean
@@ -18,6 +19,7 @@ export default function DocumentsBenefitsSection({
   updateFormData,
   setFieldError,
   errors,
+  existingDocCodes,
   onPrev,
   onSubmit,
   isSubmitting,
@@ -101,6 +103,18 @@ export default function DocumentsBenefitsSection({
     return value instanceof File ? value.name : ''
   }
 
+  const requiredDocStatus: Array<{ code: string; label: string; field: keyof FormData }> = [
+    { code: 'UDID_DOC', label: 'दिव्यांग प्रमाणपत्र / स्वावलंबन कार्ड (UDID)', field: 'udidDoc' },
+    { code: 'AADHAAR_DOC', label: 'आधारकार्ड', field: 'aadhaarDoc' },
+    { code: 'RATION_CARD_DOC', label: 'रेशनकार्ड', field: 'rationCardDoc' },
+    { code: 'BANK_DOC', label: 'बँक खाते झेरॉक्स', field: 'bankDoc' },
+    { code: 'INCOME_CERTIFICATE_DOC', label: 'उत्पन्न दाखला / वार्षिक आय प्रमाणपत्र', field: 'incomeCertificateDoc' },
+    { code: 'PHOTO_DOC', label: 'फोटो', field: 'photoDoc' },
+  ]
+
+  const uploadedDocCodes = existingDocCodes ?? new Set<string>()
+  const missingDocs = requiredDocStatus.filter(doc => !uploadedDocCodes.has(doc.code))
+
   return (
     <section className="form-section active" id="section4">
       <div className="section-header">
@@ -111,6 +125,33 @@ export default function DocumentsBenefitsSection({
         </div>
       </div>
       <div className="section-body">
+        <div className="form-group-card" style={{ marginBottom: 16 }}>
+          <div className="card-label">कागदपत्रे अनिवार्य आहेत</div>
+          <p className="section-description" style={{ marginBottom: 0 }}>
+            खालील सर्व कागदपत्रे व सही आवश्यक आहेत. कोणतेही कागदपत्र अपूर्ण असल्यास अर्ज पुढे जाऊ शकणार नाही.
+          </p>
+        </div>
+
+        {existingDocCodes && (
+          <div className="form-group-card" id="missing-documents" style={{ marginBottom: 16 }}>
+            <div className="card-label">कागदपत्र पडताळणी स्थिती</div>
+            {missingDocs.length > 0 ? (
+              <div className="alert alert-warning mb-0" role="alert" style={{ fontSize: '0.88rem' }}>
+                <strong>अपूर्ण कागदपत्रे:</strong> विभागीय वापरकर्ता खालील कागदपत्रे या स्क्रीनवरून अपलोड/री-अपलोड करू शकतो.
+                <ul className="mb-0 mt-2" style={{ paddingLeft: 18 }}>
+                  {missingDocs.map((doc) => (
+                    <li key={doc.code}>{doc.label}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div className="alert alert-success mb-0" role="alert" style={{ fontSize: '0.88rem' }}>
+                सर्व आवश्यक कागदपत्रे प्रणालीमध्ये आधीपासून उपलब्ध आहेत. नव्या फाइलने री-अपलोड केल्यास जुनी फाइल बदलली जाईल.
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="form-group-card">
           <div className="card-label">22. यापूर्वी कोणत्या शासकीय योजनेचा लाभ घेतला आहे काय? <span className="required">*</span></div>
           <div className="row g-3">
@@ -440,6 +481,11 @@ export default function DocumentsBenefitsSection({
               <div className="col-md-6">
                 <div className="upload-item">
                   <label className="form-label">1) दिव्यांग प्रमाणपत्र / स्वावलंबन कार्ड (UDID) <span className="required">*</span></label>
+                  {uploadedDocCodes.has('UDID_DOC') ? (
+                    <div className="form-text text-success mb-1">आधीची फाइल उपलब्ध आहे. नव्या फाइलने री-अपलोड करू शकता.</div>
+                  ) : (
+                    <div className="form-text text-danger mb-1">ही फाइल उपलब्ध नाही. कृपया अपलोड करा.</div>
+                  )}
                   <input
                     type="file"
                     className={`form-control ${errors.udidDoc ? 'is-invalid' : ''}`}
@@ -452,7 +498,12 @@ export default function DocumentsBenefitsSection({
               </div>
               <div className="col-md-6">
                 <div className="upload-item">
-                  <label className="form-label">2) आधारकार्ड / रेशनकार्ड <span className="required">*</span></label>
+                  <label className="form-label">2) आधारकार्ड <span className="required">*</span></label>
+                  {uploadedDocCodes.has('AADHAAR_DOC') ? (
+                    <div className="form-text text-success mb-1">आधीची फाइल उपलब्ध आहे. नव्या फाइलने री-अपलोड करू शकता.</div>
+                  ) : (
+                    <div className="form-text text-danger mb-1">ही फाइल उपलब्ध नाही. कृपया अपलोड करा.</div>
+                  )}
                   <input
                     type="file"
                     className={`form-control ${errors.aadhaarDoc ? 'is-invalid' : ''}`}
@@ -465,7 +516,30 @@ export default function DocumentsBenefitsSection({
               </div>
               <div className="col-md-6">
                 <div className="upload-item">
-                  <label className="form-label">3) बँक खाते झेरॉक्स <span className="required">*</span></label>
+                  <label className="form-label">3) रेशनकार्ड <span className="required">*</span></label>
+                  {uploadedDocCodes.has('RATION_CARD_DOC') ? (
+                    <div className="form-text text-success mb-1">आधीची फाइल उपलब्ध आहे. नव्या फाइलने री-अपलोड करू शकता.</div>
+                  ) : (
+                    <div className="form-text text-danger mb-1">ही फाइल उपलब्ध नाही. कृपया अपलोड करा.</div>
+                  )}
+                  <input
+                    type="file"
+                    className={`form-control ${errors.rationCardDoc ? 'is-invalid' : ''}`}
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleFileChange('rationCardDoc')}
+                  />
+                  {getSelectedFileName('rationCardDoc') ? <div className="form-text">निवडलेली फाइल: {getSelectedFileName('rationCardDoc')}</div> : null}
+                  {errors.rationCardDoc && <div className="invalid-feedback">{errors.rationCardDoc}</div>}
+                </div>
+              </div>
+              <div className="col-md-6">
+                <div className="upload-item">
+                  <label className="form-label">4) बँक खाते झेरॉक्स <span className="required">*</span></label>
+                  {uploadedDocCodes.has('BANK_DOC') ? (
+                    <div className="form-text text-success mb-1">आधीची फाइल उपलब्ध आहे. नव्या फाइलने री-अपलोड करू शकता.</div>
+                  ) : (
+                    <div className="form-text text-danger mb-1">ही फाइल उपलब्ध नाही. कृपया अपलोड करा.</div>
+                  )}
                   <input
                     type="file"
                     className={`form-control ${errors.bankDoc ? 'is-invalid' : ''}`}
@@ -478,7 +552,30 @@ export default function DocumentsBenefitsSection({
               </div>
               <div className="col-md-6">
                 <div className="upload-item">
-                  <label className="form-label">4) फोटो <span className="required">*</span></label>
+                  <label className="form-label">5) उत्पन्न दाखला / वार्षिक आय प्रमाणपत्र <span className="required">*</span></label>
+                  {uploadedDocCodes.has('INCOME_CERTIFICATE_DOC') ? (
+                    <div className="form-text text-success mb-1">आधीची फाइल उपलब्ध आहे. नव्या फाइलने री-अपलोड करू शकता.</div>
+                  ) : (
+                    <div className="form-text text-danger mb-1">ही फाइल उपलब्ध नाही. कृपया अपलोड करा.</div>
+                  )}
+                  <input
+                    type="file"
+                    className={`form-control ${errors.incomeCertificateDoc ? 'is-invalid' : ''}`}
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleFileChange('incomeCertificateDoc')}
+                  />
+                  {getSelectedFileName('incomeCertificateDoc') ? <div className="form-text">निवडलेली फाइल: {getSelectedFileName('incomeCertificateDoc')}</div> : null}
+                  {errors.incomeCertificateDoc && <div className="invalid-feedback">{errors.incomeCertificateDoc}</div>}
+                </div>
+              </div>
+              <div className="col-md-6">
+                <div className="upload-item">
+                  <label className="form-label">6) फोटो <span className="required">*</span></label>
+                  {uploadedDocCodes.has('PHOTO_DOC') ? (
+                    <div className="form-text text-success mb-1">आधीचा फोटो उपलब्ध आहे. नव्या फाइलने री-अपलोड करू शकता.</div>
+                  ) : (
+                    <div className="form-text text-danger mb-1">फोटो उपलब्ध नाही. कृपया अपलोड करा.</div>
+                  )}
                   <input
                     type="file"
                     className={`form-control ${errors.photoDoc ? 'is-invalid' : ''}`}

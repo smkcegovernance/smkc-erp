@@ -9,7 +9,7 @@ export interface MenuItem {
 }
 
 export interface MenuGroup {
-  key: 'transactions' | 'applications' | 'reports' | 'masters'
+  key: 'transactions' | 'applications' | 'reports' | 'masters' | 'departmental-samaj' | 'departmental-workorders'
   label: string
   icon: string
   items: MenuItem[]
@@ -38,6 +38,15 @@ export const DEPT_MENUS: DeptMenuMap = {
         { key: 'work-proposal-remarks', label: 'Work Proposal — Account Remarks', icon: 'bi-calculator-fill' },
       ],
     },
+    {
+      key: 'reports', label: 'Reports', icon: 'bi-bar-chart-fill',
+      items: [
+        { key: 'budget-liability-report', label: 'Budget Liability Report',  icon: 'bi-file-earmark-bar-graph-fill' },
+        { key: 'fund-wise-budget-liability-report', label: 'Fund-wise Budget Liability Report', icon: 'bi-diagram-3-fill' },
+        { key: 'ward-wise-expenditure-report', label: 'Ward-wise Expenditure Report', icon: 'bi-buildings-fill' },
+        { key: 'bill-payment-report',     label: 'Bill Payment Report',      icon: 'bi-receipt-cutoff' },
+      ],
+    },
   ],
 
   // No pages created yet — dashboard only
@@ -51,6 +60,20 @@ export const DEPT_MENUS: DeptMenuMap = {
         { key: 'work-proposal-over-10l',  label: 'Tender Proposal (Over ₹1 Lakh)',    icon: 'bi-file-earmark-arrow-up-fill' },
         { key: 'work-proposal-other',     label: 'Other Proposal',                     icon: 'bi-file-earmark-diff-fill' },
         { key: 'work-proposals',          label: 'My Proposals',                       icon: 'bi-journal-text' },
+      ],
+    },
+    {
+      key: 'departmental-samaj', label: 'Departmental Samaj', icon: 'bi-file-earmark-ruled-fill',
+      items: [
+        { key: 'create-samaj',  label: 'Create New Samaj',      icon: 'bi-plus-circle-fill' },
+        { key: 'samaj-list',    label: 'View Generated Samaj',  icon: 'bi-list-ul' },
+      ],
+    },
+    {
+      key: 'departmental-workorders', label: 'Departmental Workorders', icon: 'bi-clipboard-check-fill',
+      items: [
+        { key: 'create-work-order', label: 'Create New Work Order',     icon: 'bi-plus-circle-fill' },
+        { key: 'work-order-list',   label: 'View Generated Work Orders', icon: 'bi-list-ul' },
       ],
     },
   ],
@@ -72,6 +95,7 @@ export const DEPT_MENUS: DeptMenuMap = {
       key: 'applications', label: 'Applications', icon: 'bi-file-earmark-text-fill',
       items: [
         { key: 'disability-registration', label: 'Disability Registration', icon: 'bi-person-hearts' },
+        { key: 'single-women-registration', label: 'Single Women Registration', icon: 'bi-person-plus-fill' },
       ],
     },
     {

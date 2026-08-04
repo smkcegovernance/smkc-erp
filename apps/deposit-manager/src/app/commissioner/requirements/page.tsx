@@ -14,7 +14,7 @@ export default function CommissionerRequirementsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [requirements, setRequirements] = useState<DepositRequirement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'draft' | 'published' | 'finalized'>('all');
+  const [filter, setFilter] = useState<'all' | 'draft' | 'published' | 'finalized' | 'invalidated'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -145,6 +145,16 @@ export default function CommissionerRequirementsPage() {
                   >
                     Finalized ({requirements.filter(r => r.status === 'finalized').length})
                   </button>
+                  <button
+                    onClick={() => setFilter('invalidated')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      filter === 'invalidated' 
+                        ? 'bg-red-600 text-white' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Invalidated ({requirements.filter(r => r.status === 'invalidated').length})
+                  </button>
                 </div>
 
                 <div className="w-full lg:w-96">
@@ -193,9 +203,11 @@ export default function CommissionerRequirementsPage() {
                             ? 'bg-green-100 text-green-700'
                             : req.status === 'finalized'
                             ? 'bg-purple-100 text-purple-700'
+                            : req.status === 'invalidated'
+                            ? 'bg-red-100 text-red-700'
                             : 'bg-blue-100 text-blue-700'
                         }`}>
-                          {req.status.toUpperCase()}
+                          {req.status === 'invalidated' ? 'INVALIDATED BY SMKC' : req.status.toUpperCase()}
                         </span>
                       )}
                     </div>
